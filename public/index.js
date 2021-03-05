@@ -1,24 +1,41 @@
 /* eslint-env browser */
-window.collections = window.collections || {};
+window.MySite = (function () {
 
-window.collections.counter = (function () {
-    'use strict';
-
-    var count = 0;
+    const state = new Proxy({
+        count: 0
+    }, {
+        set: function(obj, prop, value) {
+            obj[prop] = value;
+            return true;
+        }
+    });
 
     return {
-        get: function () {
-            return count;
+        getStateBase64: function () {
+            return btoa(JSON.stringify(state));
         },
-        increment: function () {
-            return (count += 1);
+        setStateBase64: function (s) {
+            const newState = JSON.parse(atob(s));
+            state.count = newState.count;
         },
-        decrement: function () {
-            return (count -= 1);
+        getCount: function () {
+            return state.count;
+        },
+        incrementCount: function () {
+            state.count += 1;
+            window.history.replaceState(null, null, '#!/' + MySite.getStateBase64());
+            return state.count;
+        },
+        decrementCount: function () {
+            state.count -= 1;
+            window.history.replaceState(null, null, '#!/' + MySite.getStateBase64());
+            return state.count;
         }
     };
 })();
 
+/*
+window.collections = window.collections || {};
 window.collections.points = (function () {
     'use strict';
 
@@ -39,4 +56,12 @@ window.collections.points = (function () {
             pointsCollection.push(point);
         }
     };
+})();
+ */
+
+(function () {
+    if (location.hash.match(/^#!\//)) {
+        MySite.setStateBase64(location.hash.substring(3));
+        document.getElementById('counterDisplay').innerHTML = MySite.getCount();
+    }
 })();
