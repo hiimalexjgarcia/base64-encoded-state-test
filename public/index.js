@@ -1,5 +1,5 @@
 /* eslint-env browser */
-window.MySite = (function () {
+window.App = (function () {
 
     const state = new Proxy({
         count: 0
@@ -11,10 +11,10 @@ window.MySite = (function () {
     });
 
     return {
-        getStateBase64: function () {
+        getState: function () {
             return btoa(JSON.stringify(state));
         },
-        setStateBase64: function (s) {
+        setState: function (s) {
             const newState = JSON.parse(atob(s));
             state.count = newState.count;
         },
@@ -23,12 +23,12 @@ window.MySite = (function () {
         },
         incrementCount: function () {
             state.count += 1;
-            window.history.replaceState(null, null, '#!/' + MySite.getStateBase64());
+            history.replaceState(null, null, '#!/' + App.getState());
             return state.count;
         },
         decrementCount: function () {
             state.count -= 1;
-            window.history.replaceState(null, null, '#!/' + MySite.getStateBase64());
+            history.replaceState(null, null, '#!/' + App.getState());
             return state.count;
         }
     };
@@ -60,8 +60,25 @@ window.collections.points = (function () {
  */
 
 (function () {
-    if (location.hash.match(/^#!\//)) {
-        MySite.setStateBase64(location.hash.substring(3));
-        document.getElementById('counterDisplay').innerHTML = MySite.getCount();
+
+    const counterDisplay = document.getElementById('counterDisplay');
+    const counterButtonDecrement = document.getElementById('counterButtonDecrement');
+    const counterButtonIncrement = document.getElementById('counterButtonIncrement');
+
+    try {
+        App.setState(location.hash.substring(3));
+    } catch (error) {
+        history.replaceState(null, null, '#!/' + App.getState());
     }
+
+    counterDisplay.innerHTML = App.getCount();
+
+    counterButtonIncrement.addEventListener('click', function(){
+        counterDisplay.innerHTML = App.incrementCount();
+    }, false);
+
+    counterButtonDecrement.addEventListener('click', function(){
+        counterDisplay.innerHTML = App.decrementCount();
+    }, false);
+
 })();
