@@ -1,38 +1,4 @@
 /* eslint-env browser */
-window.App = (function () {
-
-    const state = new Proxy({
-        count: 0
-    }, {
-        set: function(obj, prop, value) {
-            obj[prop] = value;
-            return true;
-        }
-    });
-
-    return {
-        getState: function () {
-            return btoa(JSON.stringify(state));
-        },
-        setState: function (s) {
-            const newState = JSON.parse(atob(s));
-            state.count = newState.count;
-        },
-        getCount: function () {
-            return state.count;
-        },
-        incrementCount: function () {
-            state.count += 1;
-            history.replaceState(null, null, '#!/' + App.getState());
-            return state.count;
-        },
-        decrementCount: function () {
-            state.count -= 1;
-            history.replaceState(null, null, '#!/' + App.getState());
-            return state.count;
-        }
-    };
-})();
 
 /*
 window.collections = window.collections || {};
@@ -61,24 +27,63 @@ window.collections.points = (function () {
 
 (function () {
 
+const App = (function () {
+
+    const state = new Proxy({
+        count: 0,
+        points: []
+    }, {
+        set: function(obj, prop, value) {
+            obj[prop] = value;
+            history.replaceState(null, null, '#!/' + App.state.getEncoded());
+            return true;
+        }
+    });
+
+    return {
+        state: {
+            getEncoded: function () {
+                return btoa(JSON.stringify(state));
+            },
+            setEncoded: function (s) {
+                const newState = JSON.parse(atob(s));
+                state.count = newState.count;
+                state.points = newState.points;
+            }
+        },
+        counter: {
+            increment: function () {
+                return (state.count += 1);
+            },
+            decrement: function () {
+                return (state.count -= 1);
+            },
+            get: function () {
+                return state.count;
+            }
+        },
+    };
+
+})();
+
+    try {
+        App.state.setEncoded(location.hash.substring(3));
+    } catch (error) {
+        history.replaceState(null, null, '#!/' + App.state.getEncoded());
+    }
+
     const counterDisplay = document.getElementById('counterDisplay');
     const counterButtonDecrement = document.getElementById('counterButtonDecrement');
     const counterButtonIncrement = document.getElementById('counterButtonIncrement');
 
-    try {
-        App.setState(location.hash.substring(3));
-    } catch (error) {
-        history.replaceState(null, null, '#!/' + App.getState());
-    }
-
-    counterDisplay.innerHTML = App.getCount();
+    counterDisplay.innerHTML = App.counter.get();
 
     counterButtonIncrement.addEventListener('click', function(){
-        counterDisplay.innerHTML = App.incrementCount();
+        counterDisplay.innerHTML = App.counter.increment();
     }, false);
 
     counterButtonDecrement.addEventListener('click', function(){
-        counterDisplay.innerHTML = App.decrementCount();
+        counterDisplay.innerHTML = App.counter.decrement();
     }, false);
 
 })();
