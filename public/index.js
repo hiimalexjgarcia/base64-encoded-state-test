@@ -1,15 +1,15 @@
 /* eslint-env browser */
 
-;(function () {
+;(() => {
 
 // App object
-  const App = (function () {
+  const App = (() => {
 
     const state = new Proxy({
       count: 0,
       notes: [],
     }, {
-      set: function(obj, prop, value) {
+      set: (obj, prop, value) => {
         obj[prop] = value;
         window.location.hash = '#/' + App.state.getEncoded();
         return true;
@@ -19,7 +19,7 @@
     return {
       state: {
         getEncoded: () => btoa(JSON.stringify(state)),
-        setEncoded: (s) => Object.assign(state, JSON.parse(atob(s))),
+        setEncoded: s => Object.assign(state, JSON.parse(atob(s))),
       },
       counter: {
         increment: () => state.count += 1,
@@ -28,8 +28,11 @@
       },
       notes: {
         getAll: () => state.notes,
-        add: (note) => {
-          state.notes = [...state.notes, note];
+        add: n => {
+          state.notes = [...state.notes, n];
+        },
+        remove: n => {
+          state.notes = state.notes.filter((node) => node !== n);
         }
       }
     };
@@ -70,18 +73,17 @@
     App.notes.getAll().forEach((note) => {
       const el = noteTemplate.firstElementChild.cloneNode(true);
       const button = el.querySelector('button');
-      const title = el.querySelector('.card-title');
-      const body = el.querySelector('.card-body');
+      const cardTitle = el.querySelector('.card-title');
+      const cardText = el.querySelector('.card-text');
 
       el.dataset.id = note.id;
-      title.innerHTML = note.title;
-      note.body ?
-        body.innerHTML = note.body
-        : null;
+      cardTitle.innerHTML = note.title;
+      note.body ? cardText.innerHTML = note.body : null;
 
       button.addEventListener('click', (e) => {
         const id = e.target.parentNode.parentNode.parentNode.dataset.id;
-        console.log(id);
+        const note = App.notes.getAll().find((note) => note.id === id);
+        App.notes.remove(note);
       });
 
       notesEl.appendChild(el);
