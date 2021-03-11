@@ -27,7 +27,7 @@
         get: () => state.count
       },
       notes: {
-        getAll: () => state.notes,
+        getAll: () => [...state.notes],
         add: n => {
           state.notes = [...state.notes, n];
         },
