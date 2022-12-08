@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
+import { LoremIpsum } from 'lorem-ipsum';
 
 import AppState from './app_state';
 
@@ -27,8 +28,8 @@ const App = AppState();
   notesButtonAdd.addEventListener('click', () => {
     App.notes.add({
       id: uuidv4(),
-      title: ipsum.sentence(),
-      body: Math.floor(Math.random() * 2) ? ipsum.paragraph() : undefined
+      title: ipsum.generateSentences(1),
+      body: Math.floor(Math.random() * 2) ? ipsum.generateParagraphs(1) : undefined
     });
   }, false);
 
