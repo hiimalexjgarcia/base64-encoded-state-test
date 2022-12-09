@@ -73,7 +73,6 @@ buttonCopyURL.addEventListener('click', () => {
 // Initalize App state
 try {
   App.state.setEncoded(window.location.hash.substring(2));
-  window.dispatchEvent(new HashChangeEvent('hashchange')); // to trigger initial render
 } catch (e) {
   console.error(e);
   App.state.setEncoded('eyJjb3VudCI6MCwibm90ZXMiOltdfQ=='); // 'eyJjb3VudCI6MCwibm90ZXMiOltdfQ==' base64 for { count: 0, notes: [] }
