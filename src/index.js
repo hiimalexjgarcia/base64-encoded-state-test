@@ -79,7 +79,7 @@ window.addEventListener('hashchange', () => {
     App.state.setEncoded(window.location.hash.substring(2))
   } catch (e) {
     console.error(e)
-    App.state.setEncoded('eyJjb3VudCI6MCwibm90ZXMiOltdfQ==') // 'eyJjb3VudCI6MCwibm90ZXMiOltdfQ==' base64 for>
+    App.state.setEncoded('eyJjb3VudCI6MCwibm90ZXMiOltdfQ==') // 'eyJjb3VudCI6MCwibm90ZXMiOltdfQ==' base64 for { count: 0, notes: [] }
   }
 }, false)
 
