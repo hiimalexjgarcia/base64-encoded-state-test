@@ -7,7 +7,6 @@ export default function AppState () {
   }, {
     set: (obj, prop, value) => {
       obj[prop] = value
-      window.history.replaceState(null, null, document.location.pathname + '#/' + btoa(JSON.stringify(obj)))
       PubSub.publish('updateState', { prop, obj })
       return true
     }
@@ -15,12 +14,7 @@ export default function AppState () {
 
   return {
     state: {
-      setEncoded: s => Object.assign(state, JSON.parse(atob(s)))
-    },
-    counter: {
-      increment: () => { state.count += 1 },
-      decrement: () => { state.count -= 1 },
-      get: () => state.count
+      setEncoded: s => Object.assign(state, JSON.parse(Buffer.from(s, 'base64').toString('utf8')))
     },
     notes: {
       getAll: () => [...state.notes],

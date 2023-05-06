@@ -8,20 +8,6 @@ import AppState from './app_state'
 
 const App = AppState()
 
-// Set up counter
-const counterDisplay = document.getElementById('counterDisplay')
-const counterButtonDecrement = document.getElementById('counterButtonDecrement')
-const counterButtonIncrement = document.getElementById('counterButtonIncrement')
-
-counterButtonIncrement.addEventListener('click', () => App.counter.increment(), false)
-counterButtonDecrement.addEventListener('click', () => App.counter.decrement(), false)
-
-App.pubsub.subscribe((msg, data) => {
-  if (data.prop === 'count') {
-    counterDisplay.innerHTML = data.obj.count
-  }
-})
-
 // Set up notes
 const ipsum = new LoremIpsum()
 const notesContainer = document.getElementById('notesContainer')
@@ -66,12 +52,9 @@ App.pubsub.subscribe((msg, data) => {
   }
 })
 
-// Set up Copy URL button
-const buttonCopyURL = document.getElementById('buttonCopyURL')
-
-buttonCopyURL.addEventListener('click', () => {
-  navigator.clipboard.writeText(location.href)
-}, false)
+App.pubsub.subscribe((msg, data) => {
+  window.history.replaceState(null, null, document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64'))
+})
 
 // Initalize App state
 window.addEventListener('hashchange', () => {
@@ -79,6 +62,7 @@ window.addEventListener('hashchange', () => {
     App.state.setEncoded(window.location.hash.substring(2))
   } catch (e) {
     console.error(e)
+    alert(e + "\n\nResetting app...")
     App.state.setEncoded('eyJjb3VudCI6MCwibm90ZXMiOltdfQ==') // 'eyJjb3VudCI6MCwibm90ZXMiOltdfQ==' base64 for { count: 0, notes: [] }
   }
 }, false)
