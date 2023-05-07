@@ -14,17 +14,25 @@
       <nav class="navbar bg-light mb-4">
         <span id="notesDisplayCount"></span>
         <div class="ml-auto">
-          <button id="notesButtonAdd" class="btn btn-primary">+</button>
+          <button type="button" class="btn btn-primary" aria-label="Add" id="notesButtonAdd">
+            <span aria-hidden="true" style="pointer-events: none">&plus;</span>
+          </button>
         </div>
       </nav>
       <div id="notesContainer" class="card-columns"></div>
 
       <template id="noteTemplate">
-        <div class="card">
+        <div class="card fade-in">
+          <nav class="navbar navbar-light bg-light rounded-top">
+            <ul class="navbar-nav ml-auto">
+              <li class="nav-item">
+                <button type="button" class="close" aria-label="Delete">
+                  <span aria-hidden="true" style="pointer-events: none">&times;</span>
+                </button>
+              </li>
+            </ul>
+          </nav>
           <div class="card-body">
-            <button class="close" aria-label="Delete">
-              <span aria-hidden="true">&times;</span>
-            </button>
             <h5 class="card-title"></h5>
             <p class="card-text"></p>
           </div>

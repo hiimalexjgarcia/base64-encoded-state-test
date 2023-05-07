@@ -2,13 +2,25 @@ import PubSub from 'pubsub-js'
 
 export default function AppState () {
   const state = new Proxy({
-    count: 0,
     notes: []
   }, {
     set: (obj, prop, value) => {
-      obj[prop] = value
-      PubSub.publish('updateState', { prop, obj })
-      return true
+      try {
+        const oldobj = Object.assign({}, obj)
+        obj[prop] = value
+        PubSub.publish('appStateChanged', { prop, obj })
+        if (prop === 'notes') {
+          PubSub.publish('notesStateChanged', value)
+          const notesDeleted = oldobj.notes.filter(note => !obj.notes.includes(note))
+          notesDeleted.length && PubSub.publish('notesDeleted', notesDeleted)
+          const notesCreated = obj.notes.filter(note => !oldobj.notes.includes(note))
+          notesCreated.length && PubSub.publish('notesCreated', notesCreated)
+        }
+        return true
+      } catch (e) {
+        console.error(e)
+        return false
+      }
     }
   })
 
@@ -18,15 +30,11 @@ export default function AppState () {
     },
     notes: {
       getAll: () => [...state.notes],
-      add: n => {
-        state.notes = [...state.notes, n]
-      },
-      remove: n => {
-        state.notes = state.notes.filter((node) => node !== n)
-      }
+      add: n => { state.notes = [...state.notes, n] },
+      remove: n => { state.notes = state.notes.filter((node) => node !== n) }
     },
     pubsub: {
-      subscribe: (f) => { return PubSub.subscribe('updateState', f) }
+      subscribe: (msg, f) => { return PubSub.subscribe(msg, f) }
     }
   }
 }
