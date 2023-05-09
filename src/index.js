@@ -33,9 +33,10 @@ App.pubsub.subscribe('notesCreated', (msg, notes) => {
   notes.forEach((note) => {
     const el = noteTemplate.firstElementChild.cloneNode(true)
     el.dataset.id = note.id
+    el.classList.add('fade-in')
     el.querySelector('.card-title').innerHTML = note.title
     el.querySelector('.card-text').innerHTML = note.body ? note.body : null
-    el.querySelector('button').addEventListener('click', () => {
+    el.querySelector('.note-delete').addEventListener('click', () => {
       const id = el.dataset.id
       const note = notes.find((note) => note.id === id)
       App.notes.remove(note)
@@ -49,7 +50,7 @@ App.pubsub.subscribe('notesDeleted', (msg, notes) => {
     const throwaway = notesContainer.querySelector(`[data-id="${note.id}"]`)
     throwaway.onanimationend = (e) => {
       if (e.target.classList.contains('fade-out')) {
-        throwaway.parentNode.removeChild(throwaway);
+        throwaway.parentNode.removeChild(throwaway)
       }
     };
     throwaway.classList.add('fade-out')

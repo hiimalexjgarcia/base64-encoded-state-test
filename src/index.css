@@ -1,5 +1,14 @@
-body {
-  margin-top: 40px;
+.note {
+  display: flex;
+  align-items: flex-start;
+}
+
+.note details {
+  margin-left: 4px;
+}
+
+.note details summary > * {
+  display: inline;
 }
 
 .fade-in { animation: fadeIn 0.125s; }

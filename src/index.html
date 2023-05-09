@@ -3,46 +3,32 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css" integrity="sha384-xOolHFLEh07PJGoPkLv1IbcEPTNtaed2xpHsD9ESMhqIYd0nLMwNLD69Npy4HI+N" crossorigin="anonymous">
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
 
-    <div class="container">
+    <h1>Notes</h1>
 
-      <h4>Notes</h4>
-      <nav class="navbar bg-light mb-4">
-        <span id="notesDisplayCount"></span>
-        <div class="ml-auto">
-          <button type="button" class="btn btn-primary" aria-label="Add" id="notesButtonAdd">
-            <span aria-hidden="true" style="pointer-events: none">&plus;</span>
-          </button>
-        </div>
-      </nav>
-      <div id="notesContainer" class="card-columns"></div>
+    <p>
+      <button type="button" aria-label="Add" id="notesButtonAdd">
+        <span aria-hidden="true" style="pointer-events: none">&plus;</span>
+      </button>
+      <span id="notesDisplayCount"></span>
+    </p>
 
-      <template id="noteTemplate">
-        <div class="card fade-in">
-          <nav class="navbar navbar-light bg-light rounded-top">
-            <ul class="navbar-nav ml-auto">
-              <li class="nav-item">
-                <button type="button" class="close" aria-label="Delete">
-                  <span aria-hidden="true" style="pointer-events: none">&times;</span>
-                </button>
-              </li>
-            </ul>
-          </nav>
-          <div class="card-body">
-            <h5 class="card-title"></h5>
-            <p class="card-text"></p>
-          </div>
-        </div>
-      </template>
+    <div id="notesContainer"></div>
 
-    </div>
+    <template id="noteTemplate">
+      <div class="note">
+        <button type="button" aria-label="Delete" class="note-delete">
+          <span aria-hidden="true" style="pointer-events: none">&times;</span>
+        </button>
+        <details>
+          <summary><h4 class="card-title"></h4></summary>
+          <p class="card-text"></p>
+        </details>
+      </div>
+    </template>
 
-    <script src="https://cdn.jsdelivr.net/npm/jquery@3.5.1/dist/jquery.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js" integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.min.js" integrity="sha384-+sLIOodYLS7CIrQpBjl+C7nPvqq+FbNUBDunl/OZv93DB7Ln/533i8e/mZXLi/P+" crossorigin="anonymous"></script>
   </body>
 </html>
