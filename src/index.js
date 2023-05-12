@@ -8,10 +8,7 @@ import AppState from './app_state'
 
 const App = AppState()
 
-// Set up notes
-const notesContainer = document.getElementById('notesContainer')
-const noteTemplate = document.getElementById('noteTemplate').content
-
+// Set up notes toolbar
 document.getElementById('notesButtonAdd').addEventListener('click', () => {
   const ipsum = new LoremIpsum()
   App.notes.add({
@@ -21,19 +18,34 @@ document.getElementById('notesButtonAdd').addEventListener('click', () => {
   })
 }, false)
 
-App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
-  document.getElementById('notesDisplayCount').innerHTML = `${notes.length} notes`
-})
+document.getElementById('notesInputSearch').addEventListener('search', (e) => {
+  const q = e.target.value
+  let r;
+  if (q) { 
+    r = App.notes.search(e.target.value).map( (n) => n.item ) 
+  } else {
+    r = App.notes.getAll()
+  }
+  console.log(r)
+}, false)
+
+// Register notes UI updates
+
+const notesContainer = document.getElementById('notesContainer')
+const noteTemplate = document.getElementById('noteTemplate').content
 
 App.pubsub.subscribe('appStateChanged', (msg, data) => {
   window.history.replaceState(null, null, document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64'))
+})
+
+App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
+  document.getElementById('notesDisplayCount').innerHTML = `${notes.length} notes`
 })
 
 App.pubsub.subscribe('notesCreated', (msg, notes) => {
   notes.forEach((note) => {
     const el = noteTemplate.firstElementChild.cloneNode(true)
     el.dataset.id = note.id
-    el.classList.add('fade-in')
     el.querySelector('.card-title').innerHTML = note.title
     el.querySelector('.card-text').innerHTML = note.body ? note.body : null
     el.querySelector('.note-delete').addEventListener('click', () => {
@@ -48,12 +60,7 @@ App.pubsub.subscribe('notesCreated', (msg, notes) => {
 App.pubsub.subscribe('notesDeleted', (msg, notes) => {
   notes.forEach((note) => {
     const throwaway = notesContainer.querySelector(`[data-id="${note.id}"]`)
-    throwaway.onanimationend = (e) => {
-      if (e.target.classList.contains('fade-out')) {
-        throwaway.parentNode.removeChild(throwaway)
-      }
-    };
-    throwaway.classList.add('fade-out')
+    throwaway.parentNode.removeChild(throwaway)
   })
 })
 

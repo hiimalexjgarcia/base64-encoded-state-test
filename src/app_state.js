@@ -1,4 +1,5 @@
 import PubSub from 'pubsub-js'
+import Fuse from 'fuse.js'
 
 export default function AppState () {
   const state = new Proxy({
@@ -31,10 +32,17 @@ export default function AppState () {
     notes: {
       getAll: () => [...state.notes],
       add: n => { state.notes = [...state.notes, n] },
-      remove: n => { state.notes = state.notes.filter((node) => node !== n) }
+      remove: n => { state.notes = state.notes.filter( (node) => node !== n ) },
+      search: q => {
+        const fuse = new Fuse(state.notes, {
+          useExtendedSearch: true,
+          keys: ['title', 'body']
+        })
+        return fuse.search(q)
+      }
     },
     pubsub: {
-      subscribe: (msg, f) => { return PubSub.subscribe(msg, f) }
+      subscribe: PubSub.subscribe
     }
   }
 }

@@ -1,29 +1,67 @@
+input[type="search"] {
+    margin-left: auto;
+}
+
+input[type="search"]::placeholder {
+    text-align: right;
+    margin-right: -1em
+}
+
+[role="toolbar"] {
+    display: flex;
+    align-items: flex-start;
+}
+
 .note {
-  display: flex;
-  align-items: flex-start;
+    display: flex;
+    align-items: flex-start;
 }
 
 .note details {
-  margin-left: 4px;
+    margin-left: 4px;
 }
 
 .note details summary > * {
-  display: inline;
+    display: inline;
 }
 
-.fade-in { animation: fadeIn 0.125s; }
-@keyframes fadeIn {
-  0% { opacity: 0; }
-  100% { opacity: 1; }
+.note details > summary:first-of-type {
+    list-style-type: "⏵";
 }
 
-.fade-out { animation: fadeOut 0.125s; }
-@keyframes fadeOut {
-  0% { opacity: 1; }
-  100% { opacity: 0; }
+.note details[open] > summary:first-of-type {
+    list-style-type: "⏷";
 }
 
-@media (prefers-reduced-motion) {
-  .fade-in { animation: none; }
-  .fade-out { animation: none; }
+/**
+ * Visually hide an element, but leave it available for screen readers
+ * @link https://github.com/h5bp/html5-boilerplate/blob/master/dist/css/main.css
+ * @link http://snook.ca/archives/html_and_css/hiding-content-for-accessibility
+ */
+ .screen-reader {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+}
+
+/**
+ * Extends the .screen-reader class to allow the element to be focusable when navigated to via the keyboard
+ * @link https://github.com/h5bp/html5-boilerplate/blob/master/dist/css/main.css
+ * @link https://www.drupal.org/node/897638
+ */
+.screen-reader-focusable:active,
+.screen-reader-focusable:focus {
+    clip: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    position: static;
+    white-space: normal;
+    width: auto;
 }

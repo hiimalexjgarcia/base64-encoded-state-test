@@ -7,21 +7,25 @@
   </head>
   <body>
 
-    <h1>Notes</h1>
-
-    <p>
-      <button type="button" aria-label="Add" id="notesButtonAdd">
+    <div role="toolbar">
+      <button type="button" aria-label="Add note" id="notesButtonAdd">
         <span aria-hidden="true" style="pointer-events: none">&plus;</span>
+        <span class="screen-reader">Add note</span>
       </button>
-      <span id="notesDisplayCount"></span>
-    </p>
+      <input type="search" incremental aria-label="Search notes" name="q" placeholder="🔍" id="notesInputSearch">
+    </div>
 
-    <div id="notesContainer"></div>
+    <h1>Notes <small>(<span id="notesDisplayCount"></span>)</small></h1>
+
+    <div id="notesContainer">
+
+    </div>
 
     <template id="noteTemplate">
       <div class="note">
-        <button type="button" aria-label="Delete" class="note-delete">
+        <button type="button" aria-label="Delete note" class="note-delete">
           <span aria-hidden="true" style="pointer-events: none">&times;</span>
+          <span class="screen-reader">Delete note</span>
         </button>
         <details>
           <summary><h4 class="card-title"></h4></summary>
