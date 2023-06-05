@@ -1,36 +1,11 @@
-input[type="search"] {
-    margin-left: auto;
+html {
+  box-sizing: border-box;
 }
 
-input[type="search"]::placeholder {
-    text-align: right;
-    margin-right: -1em
-}
-
-[role="toolbar"] {
-    display: flex;
-    align-items: flex-start;
-}
-
-.note {
-    display: flex;
-    align-items: flex-start;
-}
-
-.note details {
-    margin-left: 4px;
-}
-
-.note details summary > * {
-    display: inline;
-}
-
-.note details > summary:first-of-type {
-    list-style-type: "⏵";
-}
-
-.note details[open] > summary:first-of-type {
-    list-style-type: "⏷";
+*,
+*:before,
+*:after {
+  box-sizing: inherit;
 }
 
 /**
@@ -64,4 +39,38 @@ input[type="search"]::placeholder {
     position: static;
     white-space: normal;
     width: auto;
+}
+
+/**
+ * Mobile styles
+ */
+input[type="search"] {
+    margin-left: auto;
+}
+
+input[type="search"]::placeholder {
+    text-align: right;
+    margin-right: -1em
+}
+
+[role="toolbar"] {
+    display: flex;
+    align-items: flex-start;
+}
+
+.note {
+    display: flex;
+    align-items: flex-start;
+}
+
+.note details {
+    margin-left: 4px;
+}
+
+.note details summary > * {
+    display: inline;
+}
+
+.no-inputsearchevent input#notesInputSearch{
+    display: none;
 }

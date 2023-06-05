@@ -2,14 +2,19 @@
 
 import { v4 as uuidv4 } from 'uuid'
 import { LoremIpsum } from 'lorem-ipsum'
-
-import './index.css'
 import AppState from './app_state'
+import './modernizr'
+import './index.css'
 
 const App = AppState()
 
+// DOM helper functions
+function $ (selector) {
+  return document.querySelector(selector)
+}
+
 // Set up notes toolbar
-document.getElementById('notesButtonAdd').addEventListener('click', () => {
+$('#notesButtonAdd').addEventListener('click', () => {
   const ipsum = new LoremIpsum()
   App.notes.add({
     id: uuidv4(),
@@ -18,48 +23,30 @@ document.getElementById('notesButtonAdd').addEventListener('click', () => {
   })
 }, false)
 
-document.getElementById('notesInputSearch').addEventListener('search', (e) => {
+$('#notesInputSearch').addEventListener('search', (e) => {
   const q = e.target.value
-  let r;
-  if (q) { 
-    r = App.notes.search(e.target.value).map( (n) => n.item ) 
-  } else {
-    r = App.notes.getAll()
-  }
-  console.log(r)
+  const r = q ? App.notes.search(e.target.value).map((n) => n.item) : App.notes.getAll()
+  $('#notesContainer').innerHTML = ''
+  updateNotesContainer(r)
 }, false)
 
 // Register notes UI updates
-
-const notesContainer = document.getElementById('notesContainer')
-const noteTemplate = document.getElementById('noteTemplate').content
 
 App.pubsub.subscribe('appStateChanged', (msg, data) => {
   window.history.replaceState(null, null, document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64'))
 })
 
 App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
-  document.getElementById('notesDisplayCount').innerHTML = `${notes.length} notes`
+  $('#notesDisplayCount').innerHTML = `${notes.length} notes`
 })
 
 App.pubsub.subscribe('notesCreated', (msg, notes) => {
-  notes.forEach((note) => {
-    const el = noteTemplate.firstElementChild.cloneNode(true)
-    el.dataset.id = note.id
-    el.querySelector('.card-title').innerHTML = note.title
-    el.querySelector('.card-text').innerHTML = note.body ? note.body : null
-    el.querySelector('.note-delete').addEventListener('click', () => {
-      const id = el.dataset.id
-      const note = notes.find((note) => note.id === id)
-      App.notes.remove(note)
-    })
-    notesContainer.appendChild(el)
-  })
+  updateNotesContainer(notes)
 })
 
 App.pubsub.subscribe('notesDeleted', (msg, notes) => {
   notes.forEach((note) => {
-    const throwaway = notesContainer.querySelector(`[data-id="${note.id}"]`)
+    const throwaway = $('#notesContainer').querySelector(`[data-id="${note.id}"]`)
     throwaway.parentNode.removeChild(throwaway)
   })
 })
@@ -79,3 +66,19 @@ window.addEventListener('hashchange', () => {
 
 // Initial render
 window.dispatchEvent(new HashChangeEvent('hashchange'))
+
+// Render notes
+function updateNotesContainer (notes) {
+  notes.forEach((note) => {
+    const el = $('#noteTemplate').content.firstElementChild.cloneNode(true)
+    el.dataset.id = note.id
+    el.querySelector('.card-title').innerHTML = note.title
+    el.querySelector('.card-text').innerHTML = note.body ? note.body : null
+    el.querySelector('.note-delete').addEventListener('click', () => {
+      const id = el.dataset.id
+      const note = notes.find((note) => note.id === id)
+      App.notes.remove(note)
+    })
+    $('#notesContainer').appendChild(el)
+  })
+}

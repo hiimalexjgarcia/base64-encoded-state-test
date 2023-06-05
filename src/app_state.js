@@ -32,7 +32,7 @@ export default function AppState () {
     notes: {
       getAll: () => [...state.notes],
       add: n => { state.notes = [...state.notes, n] },
-      remove: n => { state.notes = state.notes.filter( (node) => node !== n ) },
+      remove: n => { state.notes = state.notes.filter((node) => node !== n) },
       search: q => {
         const fuse = new Fuse(state.notes, {
           useExtendedSearch: true,
