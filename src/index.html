@@ -6,6 +6,7 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
+    <%= require('html-loader!./note_template.html').default %>
 
     <div role="toolbar">
       <button type="button" aria-label="Add note" id="notesButtonAdd">
@@ -17,20 +18,18 @@
 
     <h1>Notes <small>(<span id="notesDisplayCount"></span>)</small></h1>
 
-    <div id="notesContainer"></div>
+    <form style="margin-bottom: 1em" onsubmit="return false">
+      <fieldset>
+        <legend>Add note</legend>
+        <label style="display: block">Note</label>
+        <input style="display: block; margin-bottom: 1em" type="text" name="note" />
+        <label style="display: block">Detail</label>
+        <textarea style="display: block; margin-bottom: 1em" name="detail"></textarea>
+        <input type="submit" />
+      </fieldset>
+    </form>
 
-    <template id="noteTemplate">
-      <div class="note">
-        <button type="button" aria-label="Delete note" class="note-delete">
-          <span aria-hidden="true" style="pointer-events: none">&times;</span>
-          <span class="screen-reader">Delete note</span>
-        </button>
-        <details>
-          <summary><span class="card-title"></span></summary>
-          <p class="card-text"></p>
-        </details>
-      </div>
-    </template>
+    <div id="notesContainer"></div>
 
   </body>
 </html>

@@ -71,6 +71,6 @@ input[type="search"]::placeholder {
     display: inline;
 }
 
-.no-inputsearchevent input#notesInputSearch{
+.no-inputsearchevent input#notesInputSearch {
     display: none;
 }
