@@ -5,6 +5,7 @@ import { LoremIpsum } from 'lorem-ipsum'
 import AppState from './app_state'
 import './modernizr'
 import './index.css'
+//import Note from './components/note'
 
 const App = AppState()
 
@@ -33,7 +34,11 @@ $('#notesInputSearch').addEventListener('search', (e) => {
 // Register notes UI updates
 
 App.pubsub.subscribe('appStateChanged', (msg, data) => {
-  window.history.replaceState(null, null, document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64'))
+  window.history.replaceState(
+    null,
+    null,
+    document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64')
+  )
 })
 
 App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
@@ -70,10 +75,11 @@ window.dispatchEvent(new HashChangeEvent('hashchange'))
 // Render notes
 function updateNotesContainer (notes) {
   notes.forEach((note) => {
+    //const el = Note();
     const el = $('#noteTemplate').content.firstElementChild.cloneNode(true)
     el.dataset.id = note.id
-    el.querySelector('.card-title').innerHTML = note.title
-    el.querySelector('.card-text').innerHTML = note.body ? note.body : null
+    el.querySelector('.note-title').innerHTML = note.title
+    el.querySelector('.note-text').innerHTML = note.body ? note.body : null
     el.querySelector('.note-delete').addEventListener('click', () => {
       const id = el.dataset.id
       const note = notes.find((note) => note.id === id)

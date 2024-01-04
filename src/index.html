@@ -6,17 +6,20 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
-    <%= require('html-loader!./note_template.html').default %>
+    <%= require('html-loader!./templates/note.html').default %>
+
+    <h1>Notes</h1>
+
+    <div id="notesContainer"></div>
 
     <div role="toolbar">
       <button type="button" aria-label="Add note" id="notesButtonAdd">
         <span aria-hidden="true" style="pointer-events: none">&plus;</span>
         <span class="screen-reader">Add note</span>
       </button>
+      <span id="notesDisplayCount" style="flex: auto; text-align: right"></span>
       <input type="search" incremental aria-label="Search notes" name="q" placeholder="🔍" id="notesInputSearch">
     </div>
-
-    <h1>Notes <small>(<span id="notesDisplayCount"></span>)</small></h1>
 
     <form style="margin-bottom: 1em" onsubmit="return false">
       <fieldset>
@@ -28,8 +31,6 @@
         <input type="submit" />
       </fieldset>
     </form>
-
-    <div id="notesContainer"></div>
 
   </body>
 </html>

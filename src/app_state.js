@@ -1,7 +1,7 @@
 import PubSub from 'pubsub-js'
 import Fuse from 'fuse.js'
 
-export default function AppState () {
+const AppState = () => {
   const state = new Proxy({
     notes: []
   }, {
@@ -46,3 +46,5 @@ export default function AppState () {
     }
   }
 }
+
+export default AppState

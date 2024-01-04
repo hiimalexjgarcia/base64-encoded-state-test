@@ -1,11 +1,11 @@
 html {
-  box-sizing: border-box;
+    box-sizing: border-box;
 }
 
 *,
 *:before,
 *:after {
-  box-sizing: inherit;
+    box-sizing: inherit;
 }
 
 /**
@@ -55,7 +55,7 @@ input[type="search"]::placeholder {
 
 [role="toolbar"] {
     display: flex;
-    align-items: flex-start;
+    /* align-items: flex-start; */
 }
 
 .note {
@@ -71,6 +71,8 @@ input[type="search"]::placeholder {
     display: inline;
 }
 
+/*
 .no-inputsearchevent input#notesInputSearch {
     display: none;
 }
+*/
