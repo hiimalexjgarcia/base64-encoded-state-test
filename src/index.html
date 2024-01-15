@@ -12,22 +12,24 @@
 
     <div id="notesContainer"></div>
 
-    <div role="toolbar">
-      <button type="button" aria-label="Add note" id="notesButtonAdd">
-        <span aria-hidden="true" style="pointer-events: none">&plus;</span>
-        <span class="screen-reader">Add note</span>
-      </button>
+    <div class="d-flex" role="toolbar">
       <span id="notesDisplayCount" style="flex: auto; text-align: right"></span>
-      <input type="search" incremental aria-label="Search notes" name="q" placeholder="🔍" id="notesInputSearch">
+      <input
+        type="search"
+        incremental
+        aria-label="Search notes"
+        name="q"
+        placeholder="🔍"
+        id="notesInputSearch">
     </div>
 
-    <form style="margin-bottom: 1em" onsubmit="return false">
+    <form class="mb-3" id="addNoteForm">
       <fieldset>
         <legend>Add note</legend>
-        <label style="display: block;">Note</label>
-        <input style="display: block; width: 100%; margin-bottom: 1em" type="text" name="note" />
-        <label style="display: block">Detail</label>
-        <textarea style="display: block; width: 100%; margin-bottom: 1em" name="detail"></textarea>
+        <label class="d-block">Note</label>
+        <input class="d-block w-100 mb-3" type="text" name="note" />
+        <label class="d-block">Detail</label>
+        <textarea class="d-block w-100 mb-3" name="detail"></textarea>
         <input type="submit" />
       </fieldset>
     </form>

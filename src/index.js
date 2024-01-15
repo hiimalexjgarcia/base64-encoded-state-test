@@ -1,11 +1,12 @@
 /* eslint-env browser */
 
 import { v4 as uuidv4 } from 'uuid'
-import { LoremIpsum } from 'lorem-ipsum'
-import AppState from './app_state'
+
 import './modernizr'
 import './index.css'
-//import Note from './components/note'
+
+import AppState from './app_state'
+import Note from './components/note'
 
 const App = AppState()
 
@@ -15,20 +16,22 @@ function $ (selector) {
 }
 
 // Set up notes toolbar
-$('#notesButtonAdd').addEventListener('click', () => {
-  const ipsum = new LoremIpsum()
-  App.notes.add({
-    id: uuidv4(),
-    title: ipsum.generateSentences(1),
-    body: Math.floor(Math.random() * 2) ? ipsum.generateParagraphs(1) : undefined
-  })
-}, false)
-
 $('#notesInputSearch').addEventListener('search', (e) => {
   const q = e.target.value
   const r = q ? App.notes.search(e.target.value).map((n) => n.item) : App.notes.getAll()
   $('#notesContainer').innerHTML = ''
   updateNotesContainer(r)
+}, false)
+
+$('#addNoteForm').addEventListener('submit', (e) => {
+  e.preventDefault()
+  const data = new FormData(e.target)
+  App.notes.add({
+    id: uuidv4(),
+    title: data.get('note'),
+    body: data.get('detail')
+  })
+  e.target.reset()
 }, false)
 
 // Register notes UI updates
@@ -75,14 +78,7 @@ window.dispatchEvent(new HashChangeEvent('hashchange'))
 // Render notes
 function updateNotesContainer (notes) {
   notes.forEach((note) => {
-    //const el = Note();
-    const el = $('#noteTemplate').content.firstElementChild.cloneNode(true)
-    el.dataset.id = note.id
-    el.querySelector('.note-title').innerHTML = note.title
-    el.querySelector('.note-text').innerHTML = note.body ? note.body : null
-    el.querySelector('.note-delete').addEventListener('click', () => {
-      const id = el.dataset.id
-      const note = notes.find((note) => note.id === id)
+    const el = Note(note, () => {
       App.notes.remove(note)
     })
     $('#notesContainer').appendChild(el)

@@ -32,9 +32,7 @@
   },
   "dependencies": {
     "fuse.js": "^6.6.2",
-    "lorem-ipsum": "^2.0.8",
     "pubsub-js": "^1.9.4",
-    "uuid": "^9.0.0",
-    "vanjs-core": "^1.2.7"
+    "uuid": "^9.0.0"
   }
 }
