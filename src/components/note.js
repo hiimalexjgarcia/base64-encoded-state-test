@@ -11,7 +11,7 @@ const Note = (note, deleteCallback) => {
       <summary>
         <span class="note-title">${note.title}</span>
       </summary>
-      <p class="note-text">${note.body}</p>
+      <p class="note-body">${note.body}</p>
     </details>
   `
   el.querySelector('.note-delete').addEventListener("click", deleteCallback)

@@ -1,28 +1,54 @@
 /* eslint-env browser */
 
 import { v4 as uuidv4 } from 'uuid'
-
+import AppState from './app_state'
+import Note from './components/note'
 import './modernizr'
 import './index.css'
 
-import AppState from './app_state'
-import Note from './components/note'
-
 const App = AppState()
+App.pubsub.subscribe('appStateChanged', (msg, data) => {
+  window.history.replaceState(
+    null,
+    null,
+    document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64')
+  )
+})
+App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
+  $('#notesDisplayCount').innerHTML = `${notes.length} notes`
+})
+App.pubsub.subscribe('notesCreated', (msg, notes) => {
+  updateNotesContainer(notes)
+})
+App.pubsub.subscribe('notesDeleted', (msg, notes) => {
+  notes.forEach((note) => {
+    const throwaway = $('#notes').querySelector(`[data-id="${note.id}"]`)
+    throwaway.parentNode.removeChild(throwaway)
+  })
+})
+
 
 // DOM helper functions
 function $ (selector) {
   return document.querySelector(selector)
 }
+function updateNotesContainer (notes) {
+  notes.forEach((note) => {
+    const el = Note(note, () => {
+      App.notes.remove(note)
+    })
+    $('#notes').appendChild(el)
+  })
+}
+
 
 // Set up notes toolbar
 $('#notesInputSearch').addEventListener('search', (e) => {
   const q = e.target.value
   const r = q ? App.notes.search(e.target.value).map((n) => n.item) : App.notes.getAll()
-  $('#notesContainer').innerHTML = ''
+  $('#notes').innerHTML = ''
   updateNotesContainer(r)
 }, false)
-
 $('#addNoteForm').addEventListener('submit', (e) => {
   e.preventDefault()
   const data = new FormData(e.target)
@@ -34,30 +60,6 @@ $('#addNoteForm').addEventListener('submit', (e) => {
   e.target.reset()
 }, false)
 
-// Register notes UI updates
-
-App.pubsub.subscribe('appStateChanged', (msg, data) => {
-  window.history.replaceState(
-    null,
-    null,
-    document.location.pathname + '#/' + Buffer.from(JSON.stringify(data.obj)).toString('base64')
-  )
-})
-
-App.pubsub.subscribe('notesStateChanged', (msg, notes) => {
-  $('#notesDisplayCount').innerHTML = `${notes.length} notes`
-})
-
-App.pubsub.subscribe('notesCreated', (msg, notes) => {
-  updateNotesContainer(notes)
-})
-
-App.pubsub.subscribe('notesDeleted', (msg, notes) => {
-  notes.forEach((note) => {
-    const throwaway = $('#notesContainer').querySelector(`[data-id="${note.id}"]`)
-    throwaway.parentNode.removeChild(throwaway)
-  })
-})
 
 // Initalize App state
 window.addEventListener('hashchange', () => {
@@ -71,16 +73,5 @@ window.addEventListener('hashchange', () => {
     App.state.setEncoded('eyJub3RlcyI6W119') // 'eyJub3RlcyI6W119' base64 for { notes: [] }
   }
 }, false)
-
 // Initial render
 window.dispatchEvent(new HashChangeEvent('hashchange'))
-
-// Render notes
-function updateNotesContainer (notes) {
-  notes.forEach((note) => {
-    const el = Note(note, () => {
-      App.notes.remove(note)
-    })
-    $('#notesContainer').appendChild(el)
-  })
-}

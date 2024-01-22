@@ -6,21 +6,20 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
-    <%= require('html-loader!./templates/note.html').default %>
-
     <h1>Notes</h1>
 
-    <div id="notesContainer"></div>
+    <div id="notes">
+    </div>
 
     <div class="d-flex" role="toolbar">
-      <span id="notesDisplayCount" style="flex: auto; text-align: right"></span>
+      <span id="notesDisplayCount" class="flex-fill text-right"></span>
       <input
         type="search"
         incremental
         aria-label="Search notes"
         name="q"
         placeholder="🔍"
-        id="notesInputSearch">
+        id="notesInputSearch" />
     </div>
 
     <form class="mb-3" id="addNoteForm">

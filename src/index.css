@@ -13,7 +13,7 @@ html {
  * @link https://github.com/h5bp/html5-boilerplate/blob/master/dist/css/main.css
  * @link http://snook.ca/archives/html_and_css/hiding-content-for-accessibility
  */
- .screen-reader {
+.screen-reader {
     border: 0;
     clip: rect(0 0 0 0);
     height: 1px;
@@ -55,6 +55,12 @@ html {
 }
 .d-flex .align-items-start {
     align-items: flex-start;
+}
+.text-right {
+    text-align: right;
+}
+.flex-fill {
+    flex: 1 1 auto;
 }
 
 /**
