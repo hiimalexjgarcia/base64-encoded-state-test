@@ -4,6 +4,8 @@ import { v4 as uuidv4 } from 'uuid'
 import AppState from './app_state'
 import Note from './components/note'
 import './modernizr'
+import 'bootstrap/dist/css/bootstrap.css'
+
 import './index.css'
 
 const App = AppState()

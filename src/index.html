@@ -6,6 +6,7 @@
     <title><%= htmlWebpackPlugin.options.title %></title>
   </head>
   <body>
+    <div class="container">
     <h1>Notes</h1>
 
     <div id="notes">
@@ -25,13 +26,14 @@
     <form class="mb-3" id="addNoteForm">
       <fieldset>
         <legend>Add note</legend>
-        <label class="d-block">Note</label>
-        <input class="d-block w-100 mb-3" type="text" name="note" />
-        <label class="d-block">Detail</label>
-        <textarea class="d-block w-100 mb-3" name="detail"></textarea>
+        <label class="d-block screen-reader">Note</label>
+        <input class="d-block w-100 mb-3" type="text" name="note" placeholder="Note" />
+        <label class="d-block screen-reader">Detail</label>
+        <textarea class="d-block w-100 mb-3" name="detail" placeholder="Detail"></textarea>
         <input type="submit" />
       </fieldset>
     </form>
 
+    </div>
   </body>
 </html>
