@@ -77,19 +77,27 @@ function renderAllNotes(): void {
 const setupSearch = (): void => {
   const searchInput = $('#notesInputSearch') as HTMLInputElement | null;
   if (!searchInput) return;
-  
-  searchInput.addEventListener('search', (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    const query = target.value;
-    const results = query 
+
+  const performSearch = (query: string): void => {
+    const results = query.trim()
       ? AppState.notes.search(query).map((r) => r.item)
       : AppState.notes.getAll();
-    
+
     const container = $('#notes');
     if (container) {
       container.innerHTML = '';
       updateNotesContainer(results);
     }
+  };
+
+  searchInput.addEventListener('input', (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    performSearch(target.value);
+  }, false);
+
+  searchInput.addEventListener('search', (e: Event) => {
+    const target = e.target as HTMLInputElement;
+    performSearch(target.value);
   }, false);
 };
 
