@@ -45,22 +45,17 @@ const Note = (note: NoteType, deleteCallback: () => void, editCallback?: () => v
   }
   actions.appendChild(createDeleteButton(deleteCallback));
 
-  const details = document.createElement('details');
-  const summary = document.createElement('summary');
-  const title = document.createElement('span');
+  const title = document.createElement('div');
   title.className = 'note-title';
   title.textContent = sanitizeString(note.title);
-  summary.appendChild(title);
 
-  const body = document.createElement('p');
+  const body = document.createElement('div');
   body.className = 'note-body';
   body.textContent = sanitizeString(note.body);
 
-  details.appendChild(summary);
-  details.appendChild(body);
-
   el.appendChild(actions);
-  el.appendChild(details);
+  el.appendChild(title);
+  el.appendChild(body);
 
   return el;
 };

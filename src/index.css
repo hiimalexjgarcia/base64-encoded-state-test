@@ -8,11 +8,11 @@ html {
     box-sizing: inherit;
 }
 
-/**
- * Visually hide an element, but leave it available for screen readers
- * @link https://github.com/h5bp/html5-boilerplate/blob/master/dist/css/main.css
- * @link http://snook.ca/archives/html_and_css/hiding-content-for-accessibility
- */
+body {
+    background: #d7ccc2;
+    padding: 1rem;
+}
+
 .screen-reader {
     border: 0;
     clip: rect(0 0 0 0);
@@ -25,11 +25,6 @@ html {
     width: 1px;
 }
 
-/**
- * Extends the .screen-reader class to allow the element to be focusable when navigated to via the keyboard
- * @link https://github.com/h5bp/html5-boilerplate/blob/master/dist/css/main.css
- * @link https://www.drupal.org/node/897638
- */
 .screen-reader-focusable:active,
 .screen-reader-focusable:focus {
     clip: auto;
@@ -63,29 +58,82 @@ html {
     flex: 1 1 auto;
 }
 
-/**
- * Mobile styles
- */
 input[type="search"] {
     margin-left: auto;
 }
 
 input[type="search"]::placeholder {
     text-align: right;
-    margin-right: -1em
+    margin-right: -1em;
+}
+
+#notes {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .note {
+    position: relative;
+    background: #fff9c4;
+    box-shadow: 2px 2px 8px rgba(0, 0, 0, 0.2);
+    padding: 1.5rem 1rem 1rem;
+    border-radius: 2px;
+    min-height: 150px;
+    transform: rotate(-1deg);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.note:nth-child(even) {
+    background: #f0f4c3;
+    transform: rotate(1deg);
+}
+
+.note:nth-child(3n) {
+    background: #ffe0b2;
+    transform: rotate(-0.5deg);
+}
+
+.note:hover {
+    transform: rotate(0deg) scale(1.02);
+    box-shadow: 3px 3px 12px rgba(0, 0, 0, 0.25);
+    z-index: 1;
+}
+
+.note-actions {
+    position: absolute;
+    top: 4px;
+    right: 4px;
     display: flex;
-    align-items: flex-start;
+    gap: 4px;
 }
 
-.note details {
-    margin-left: 4px;
+.note-actions button {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    opacity: 0.6;
 }
 
-.note details summary > * {
-    display: inline;
+.note-actions button:hover {
+    opacity: 1;
+}
+
+.note-title {
+    font-weight: bold;
+    display: block;
+    margin-bottom: 0.5rem;
+    word-break: break-word;
+}
+
+.note-body {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-size: 0.9rem;
 }
 
 
