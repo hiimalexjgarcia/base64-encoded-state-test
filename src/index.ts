@@ -96,94 +96,77 @@ const setupSearch = (): void => {
 
 let editingNoteId: string | null = null;
 
+const getFormElements = (form: HTMLFormElement) => ({
+  titleInput: form.querySelector('input[name="note"]') as HTMLInputElement | null,
+  bodyInput: form.querySelector('textarea[name="detail"]') as HTMLTextAreaElement | null,
+  legend: form.querySelector('legend'),
+  submitBtn: form.querySelector('input[type="submit"]') as HTMLInputElement | null,
+  cancelBtn: document.getElementById('cancelEditBtn'),
+});
+
 const startEditNote = (note: Note): void => {
-  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!addNoteForm) return;
+  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
+  if (!form) return;
 
   editingNoteId = note.id;
-  const titleInput = addNoteForm.querySelector('input[name="note"]') as HTMLInputElement | null;
-  const bodyInput = addNoteForm.querySelector('textarea[name="detail"]') as HTMLTextAreaElement | null;
-  const legend = addNoteForm.querySelector('legend');
+  const { titleInput, bodyInput, legend, submitBtn, cancelBtn } = getFormElements(form);
 
-  if (titleInput) {
-    titleInput.value = note.title;
-  }
-  if (bodyInput) {
-    bodyInput.value = note.body;
-  }
-  if (legend) {
-    legend.textContent = 'Edit note';
-  }
-  const submitBtn = addNoteForm.querySelector('input[type="submit"]') as HTMLInputElement | null;
-  if (submitBtn) {
-    submitBtn.value = 'Save';
-  }
-  const cancelBtn = document.getElementById('cancelEditBtn');
-  if (cancelBtn) {
-    cancelBtn.style.display = 'inline-block';
-  }
+  if (titleInput) titleInput.value = note.title;
+  if (bodyInput) bodyInput.value = note.body;
+  if (legend) legend.textContent = 'Edit note';
+  if (submitBtn) submitBtn.value = 'Save';
+  if (cancelBtn) cancelBtn.style.display = 'inline-block';
   titleInput?.focus();
 };
 
 const cancelEdit = (): void => {
   editingNoteId = null;
-  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!addNoteForm) return;
-  addNoteForm.reset();
-  const legend = addNoteForm.querySelector('legend');
-  if (legend) {
-    legend.textContent = 'Add note';
-  }
-  const submitBtn = addNoteForm.querySelector('input[type="submit"]') as HTMLInputElement | null;
-  if (submitBtn) {
-    submitBtn.value = 'Submit';
-  }
-  const cancelBtn = document.getElementById('cancelEditBtn');
-  if (cancelBtn) {
-    cancelBtn.style.display = 'none';
-  }
+  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
+  if (!form) return;
+  form.reset();
+  const { legend, submitBtn, cancelBtn } = getFormElements(form);
+  if (legend) legend.textContent = 'Add note';
+  if (submitBtn) submitBtn.value = 'Submit';
+  if (cancelBtn) cancelBtn.style.display = 'none';
 };
 
 const setupForm = (): void => {
-  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!addNoteForm) return;
+  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
+  if (!form) return;
 
-  const cancelBtn = document.getElementById('cancelEditBtn');
+  const { cancelBtn } = getFormElements(form);
   if (cancelBtn) {
     cancelBtn.addEventListener('click', cancelEdit);
   }
-  
-  addNoteForm.addEventListener('submit', (e: Event) => {
+
+  form.addEventListener('submit', (e: Event) => {
     e.preventDefault();
-    
-    const formData = new FormData(addNoteForm);
+
+    const formData = new FormData(form);
     const noteData = createNoteFromForm(formData);
-    
+
     if (!noteData) {
       console.error('Invalid note data');
       return;
     }
 
     if (editingNoteId) {
-      const note: Note = {
+      AppState.notes.update({
         id: editingNoteId,
         title: noteData.title,
-        body: noteData.body
-      };
-      AppState.notes.update(note);
+        body: noteData.body,
+      });
       cancelEdit();
       return;
     }
-    
-    const note: Note = {
+
+    AppState.notes.add({
       id: AppState.generateId(),
       title: noteData.title,
-      body: noteData.body
-    };
-    
-    AppState.notes.add(note);
-    
-    addNoteForm.reset();
+      body: noteData.body,
+    });
+
+    form.reset();
   }, false);
 };
 
