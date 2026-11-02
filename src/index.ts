@@ -3,9 +3,8 @@
 import AppState from './state/appState';
 import Note from './components/note';
 import { createNoteFromForm, validateNote } from './utils/validation';
-import { Note as NoteType } from './types';
+import { Note } from './types';
 import './modernizr';
-
 import './index.css';
 
 // Initialize state synchronization with URL
@@ -25,7 +24,7 @@ AppState.pubsub.subscribe('appStateChanged', () => {
   renderAllNotes();
 });
 
-AppState.pubsub.subscribe('notesStateChanged', (notes: NoteType[] | unknown) => {
+AppState.pubsub.subscribe('notesStateChanged', (notes: Note[] | unknown) => {
   const notesArray = Array.isArray(notes) ? notes : [];
   const countElement = document.getElementById('notesDisplayCount');
   if (countElement) {
@@ -43,7 +42,7 @@ AppState.pubsub.subscribe('notesStateChanged', (notes: NoteType[] | unknown) => 
  * Updates the notes container with new notes
  * @param notes - Array of notes to add
  */
-function updateNotesContainer(notes: NoteType[]): void {
+function updateNotesContainer(notes: Note[]): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
 
@@ -101,7 +100,7 @@ const setupSearch = (): void => {
 
 let editingNoteId: string | null = null;
 
-const startEditNote = (note: NoteType): void => {
+const startEditNote = (note: Note): void => {
   const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
   if (!addNoteForm) return;
 
@@ -170,7 +169,7 @@ const setupForm = (): void => {
     }
 
     if (editingNoteId) {
-      const note: NoteType = {
+      const note: Note = {
         id: editingNoteId,
         title: noteData.title,
         body: noteData.body
@@ -180,7 +179,7 @@ const setupForm = (): void => {
       return;
     }
     
-    const note: NoteType = {
+    const note: Note = {
       id: AppState.generateId(),
       title: noteData.title,
       body: noteData.body
