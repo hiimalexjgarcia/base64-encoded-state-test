@@ -39,16 +39,12 @@ AppState.pubsub.subscribe('notesStateChanged', (notes: NoteType[] | unknown) => 
  * @param selector - CSS selector
  * @returns First matching element
  */
-function $<T extends HTMLElement>(selector: string): T | null {
-  return document.querySelector<T>(selector);
-}
-
 /**
  * Updates the notes container with new notes
  * @param notes - Array of notes to add
  */
 function updateNotesContainer(notes: NoteType[]): void {
-  const container = $('#notes');
+  const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
 
   notes.forEach((note) => {
@@ -67,7 +63,7 @@ function updateNotesContainer(notes: NoteType[]): void {
  * Renders all notes from current state
  */
 function renderAllNotes(): void {
-  const container = $('#notes');
+  const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
   
   container.innerHTML = '';
@@ -77,7 +73,7 @@ function renderAllNotes(): void {
 
 // Set up notes toolbar
 const setupSearch = (): void => {
-  const searchInput = $('#notesInputSearch') as HTMLInputElement | null;
+  const searchInput = document.querySelector<HTMLInputElement>('#notesInputSearch');
   if (!searchInput) return;
 
   const performSearch = (query: string): void => {
@@ -85,7 +81,7 @@ const setupSearch = (): void => {
       ? AppState.notes.search(query).map((r) => r.item)
       : AppState.notes.getAll();
 
-    const container = $('#notes');
+    const container = document.querySelector<HTMLElement>('#notes');
     if (container) {
       container.innerHTML = '';
       updateNotesContainer(results);
@@ -106,7 +102,7 @@ const setupSearch = (): void => {
 let editingNoteId: string | null = null;
 
 const startEditNote = (note: NoteType): void => {
-  const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
+  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
   if (!addNoteForm) return;
 
   editingNoteId = note.id;
@@ -127,7 +123,7 @@ const startEditNote = (note: NoteType): void => {
   if (submitBtn) {
     submitBtn.value = 'Save';
   }
-  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById('cancelEditBtn');
   if (cancelBtn) {
     cancelBtn.style.display = 'inline-block';
   }
@@ -136,7 +132,7 @@ const startEditNote = (note: NoteType): void => {
 
 const cancelEdit = (): void => {
   editingNoteId = null;
-  const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
+  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
   if (!addNoteForm) return;
   addNoteForm.reset();
   const legend = addNoteForm.querySelector('legend');
@@ -147,17 +143,17 @@ const cancelEdit = (): void => {
   if (submitBtn) {
     submitBtn.value = 'Submit';
   }
-  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById('cancelEditBtn');
   if (cancelBtn) {
     cancelBtn.style.display = 'none';
   }
 };
 
 const setupForm = (): void => {
-  const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
+  const addNoteForm = document.querySelector<HTMLFormElement>('#addNoteForm');
   if (!addNoteForm) return;
 
-  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  const cancelBtn = document.getElementById('cancelEditBtn');
   if (cancelBtn) {
     cancelBtn.addEventListener('click', cancelEdit);
   }
