@@ -4,7 +4,6 @@ import AppState from './state/appState';
 import Note from './components/note';
 import { createNoteFromForm, validateNote } from './utils/validation';
 import { Note } from './types';
-import './modernizr';
 import './index.css';
 
 // Initialize state synchronization with URL
