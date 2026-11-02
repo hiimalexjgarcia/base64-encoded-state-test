@@ -9,13 +9,29 @@ import { sanitizeString } from '../utils/validation';
  * Creates a note DOM element
  * @param note - Note object with id, title, body
  * @param deleteCallback - Callback to invoke when delete button is clicked
+ * @param editCallback - Callback to invoke when edit button is clicked
  * @returns DOM element representing the note
  */
-const Note = (note: NoteType, deleteCallback: () => void): HTMLElement => {
+const Note = (note: NoteType, deleteCallback: () => void, editCallback?: () => void): HTMLElement => {
   // Create container
   const el = document.createElement('div');
   el.className = 'note';
   el.dataset.id = note.id;
+
+  // Create button container
+  const buttonContainer = document.createElement('div');
+  buttonContainer.className = 'note-actions';
+
+  // Create edit button
+  if (editCallback) {
+    const editButton = document.createElement('button');
+    editButton.type = 'button';
+    editButton.className = 'note-edit';
+    editButton.setAttribute('aria-label', 'Edit note');
+    editButton.textContent = '✎';
+    editButton.addEventListener('click', editCallback);
+    buttonContainer.appendChild(editButton);
+  }
 
   // Create delete button
   const deleteButton = document.createElement('button');
@@ -35,6 +51,7 @@ const Note = (note: NoteType, deleteCallback: () => void): HTMLElement => {
   deleteButton.appendChild(deleteSpanIcon);
   deleteButton.appendChild(deleteSpanText);
   deleteButton.addEventListener('click', deleteCallback);
+  buttonContainer.appendChild(deleteButton);
 
   // Create details section
   const details = document.createElement('details');
@@ -42,20 +59,18 @@ const Note = (note: NoteType, deleteCallback: () => void): HTMLElement => {
   const summary = document.createElement('summary');
   const titleSpan = document.createElement('span');
   titleSpan.className = 'note-title';
-  // Use textContent for XSS prevention (sanitize just in case)
   titleSpan.textContent = sanitizeString(note.title);
   summary.appendChild(titleSpan);
 
   const bodyParagraph = document.createElement('p');
   bodyParagraph.className = 'note-body';
-  // Use textContent for XSS prevention (sanitize just in case)
   bodyParagraph.textContent = sanitizeString(note.body);
 
   details.appendChild(summary);
   details.appendChild(bodyParagraph);
 
   // Assemble the note
-  el.appendChild(deleteButton);
+  el.appendChild(buttonContainer);
   el.appendChild(details);
 
   return el;

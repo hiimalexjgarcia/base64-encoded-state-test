@@ -54,6 +54,7 @@ export interface IAppState {
   notes: {
     getAll: () => Note[];
     add: (note: Note) => void;
+    update: (note: Note) => void;
     remove: (note: Note) => void;
     search: (query: string) => Array<{ item: Note; score: number }>;
   };

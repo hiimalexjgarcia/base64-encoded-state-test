@@ -221,6 +221,33 @@ const createAppState = (): IAppState => {
       },
 
       /**
+       * Updates a note in state
+       * @param note - Note to update
+       */
+      update: (note: Note): void => {
+        if (!note || !note.id) {
+          handleError(new Error('Invalid note: missing id'), {
+            module: 'state',
+            method: 'notes.update'
+          });
+          return;
+        }
+
+        if (!validateNote(note)) {
+          handleError(new Error('Invalid note: validation failed'), {
+            module: 'state',
+            method: 'notes.update'
+          });
+          return;
+        }
+
+        setState((currentState) => ({
+          ...currentState,
+          notes: currentState.notes.map(n => n.id === note.id ? note : n)
+        }));
+      },
+
+      /**
        * Removes a note from state
        * @param note - Note to remove
        */

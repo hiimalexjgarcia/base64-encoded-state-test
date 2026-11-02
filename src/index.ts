@@ -50,11 +50,13 @@ function $<T extends HTMLElement>(selector: string): T | null {
 function updateNotesContainer(notes: NoteType[]): void {
   const container = $('#notes');
   if (!container) return;
-  
+
   notes.forEach((note) => {
     if (validateNote(note)) {
       const el = Note(note, () => {
         AppState.notes.remove(note);
+      }, () => {
+        startEditNote(note);
       });
       container.appendChild(el);
     }
@@ -101,9 +103,64 @@ const setupSearch = (): void => {
   }, false);
 };
 
+let editingNoteId: string | null = null;
+
+const startEditNote = (note: NoteType): void => {
+  const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
+  if (!addNoteForm) return;
+
+  editingNoteId = note.id;
+  const titleInput = addNoteForm.querySelector('input[name="note"]') as HTMLInputElement | null;
+  const bodyInput = addNoteForm.querySelector('textarea[name="detail"]') as HTMLTextAreaElement | null;
+  const legend = addNoteForm.querySelector('legend');
+
+  if (titleInput) {
+    titleInput.value = note.title;
+  }
+  if (bodyInput) {
+    bodyInput.value = note.body;
+  }
+  if (legend) {
+    legend.textContent = 'Edit note';
+  }
+  const submitBtn = addNoteForm.querySelector('input[type="submit"]') as HTMLInputElement | null;
+  if (submitBtn) {
+    submitBtn.value = 'Save';
+  }
+  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  if (cancelBtn) {
+    cancelBtn.style.display = 'inline-block';
+  }
+  titleInput?.focus();
+};
+
+const cancelEdit = (): void => {
+  editingNoteId = null;
+  const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
+  if (!addNoteForm) return;
+  addNoteForm.reset();
+  const legend = addNoteForm.querySelector('legend');
+  if (legend) {
+    legend.textContent = 'Add note';
+  }
+  const submitBtn = addNoteForm.querySelector('input[type="submit"]') as HTMLInputElement | null;
+  if (submitBtn) {
+    submitBtn.value = 'Submit';
+  }
+  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  if (cancelBtn) {
+    cancelBtn.style.display = 'none';
+  }
+};
+
 const setupForm = (): void => {
   const addNoteForm = $('#addNoteForm') as HTMLFormElement | null;
   if (!addNoteForm) return;
+
+  const cancelBtn = document.getElementById('cancelEditBtn') as HTMLButtonElement | null;
+  if (cancelBtn) {
+    cancelBtn.addEventListener('click', cancelEdit);
+  }
   
   addNoteForm.addEventListener('submit', (e: Event) => {
     e.preventDefault();
@@ -112,22 +169,29 @@ const setupForm = (): void => {
     const noteData = createNoteFromForm(formData);
     
     if (!noteData) {
-      // Validation failed - optionally show error to user
       console.error('Invalid note data');
       return;
     }
+
+    if (editingNoteId) {
+      const note: NoteType = {
+        id: editingNoteId,
+        title: noteData.title,
+        body: noteData.body
+      };
+      AppState.notes.update(note);
+      cancelEdit();
+      return;
+    }
     
-    // Create full note object with ID
     const note: NoteType = {
       id: AppState.generateId(),
       title: noteData.title,
       body: noteData.body
     };
     
-    // Add to state (validation happens inside AppState.notes.add)
     AppState.notes.add(note);
     
-    // Reset form
     addNoteForm.reset();
   }, false);
 };
