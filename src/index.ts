@@ -63,18 +63,17 @@ function updateNotesContainer(notes: Note[]): void {
 function renderAllNotes(): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
-  
+
   container.innerHTML = '';
-  const allNotes = AppState.notes.getAll();
-  updateNotesContainer(allNotes);
+  updateNotesContainer(AppState.notes.getAll());
 }
 
 // Set up notes toolbar
 const setupSearch = (): void => {
-  const searchInput = document.querySelector<HTMLInputElement>('#notesInputSearch');
-  if (!searchInput) return;
+  const input = document.querySelector<HTMLInputElement>('#notesInputSearch');
+  if (!input) return;
 
-  const performSearch = (query: string): void => {
+  const search = (query: string): void => {
     const results = query.trim()
       ? AppState.notes.search(query).map((r) => r.item)
       : AppState.notes.getAll();
@@ -86,14 +85,12 @@ const setupSearch = (): void => {
     }
   };
 
-  searchInput.addEventListener('input', (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    performSearch(target.value);
+  input.addEventListener('input', (e: Event) => {
+    search((e.target as HTMLInputElement).value);
   }, false);
 
-  searchInput.addEventListener('search', (e: Event) => {
-    const target = e.target as HTMLInputElement;
-    performSearch(target.value);
+  input.addEventListener('search', (e: Event) => {
+    search((e.target as HTMLInputElement).value);
   }, false);
 };
 
