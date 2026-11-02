@@ -3,7 +3,7 @@
  * Uses compact JSON + base64url for URL-safe encoding
  */
 
-const { nanoid: nanoidFn } = require('nanoid');
+import { nanoid } from 'nanoid';
 import { AppState, Note } from '../types';
 import { validateNote } from './validation';
 
@@ -87,4 +87,4 @@ export const decodeState = (encoded: string): AppState => {
   }
 };
 
-export const generateId = (): string => nanoidFn();
+export const generateId = (): string => nanoid();

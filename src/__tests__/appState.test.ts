@@ -1,3 +1,4 @@
+import { jest } from '@jest/globals';
 import { createAppState } from '../state/appState';
 import { Note } from '../types';
 

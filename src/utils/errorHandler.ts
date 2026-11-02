@@ -14,7 +14,7 @@ export const handleError = (error: unknown, context: ErrorContext = {}): void =>
 
   console.error(`[${module}.${method}]`, error);
 
-  if (process.env.NODE_ENV === 'development' && !silent && error instanceof Error) {
+  if ((import.meta as any).env?.DEV && !silent && error instanceof Error) {
     console.debug(`[${module}.${method}] details:`, error.stack);
   }
 };

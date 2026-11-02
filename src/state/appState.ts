@@ -296,7 +296,7 @@ const createAppState = (): IAppState => {
     /**
      * ID generation
      */
-    generateId: generateId,
+    generateId,
 
     /**
      * Pub/Sub subscription methods

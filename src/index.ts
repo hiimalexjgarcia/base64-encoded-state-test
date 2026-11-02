@@ -1,7 +1,7 @@
 /* eslint-env browser */
 
 import AppState from './state/appState';
-import Note from './components/note';
+import NoteComponent from './components/note';
 import { createNoteFromForm, validateNote } from './utils/validation';
 import { Note } from './types';
 import './index.css';
@@ -47,7 +47,7 @@ function updateNotesContainer(notes: Note[]): void {
 
   notes.forEach((note) => {
     if (validateNote(note)) {
-      const el = Note(note, () => {
+      const el = NoteComponent(note, () => {
         AppState.notes.remove(note);
       }, () => {
         startEditNote(note);

@@ -1,11 +1,13 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  preset: 'ts-jest',
+  preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
+  extensionsToTreatAsEsm: ['.ts'],
   roots: ['<rootDir>/src'],
   testMatch: ['**/__tests__/**/*.+(ts|tsx|js)', '**/?(*.)+(spec|test).+(ts|tsx|js)'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
+      useESM: true,
       tsconfig: 'tsconfig.json',
     }],
   },
@@ -13,11 +15,11 @@ module.exports = {
     'node_modules/(?!(fuse\.js|nanoid)/)',
   ],
   moduleNameMapper: {
+    '^(\\.{1,2}/.*)\\.js$': '$1',
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@state/(.*)$': '<rootDir>/src/state/$1',
     '^@components/(.*)$': '<rootDir>/src/components/$1',
     '^@utils/(.*)$': '<rootDir>/src/utils/$1',
-    // Force nanoid to use CommonJS entry points
     '^nanoid$': '<rootDir>/node_modules/nanoid/index.cjs',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],

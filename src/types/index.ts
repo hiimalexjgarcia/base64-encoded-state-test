@@ -58,6 +58,7 @@ export interface IAppState {
     remove: (note: Note) => void;
     search: (query: string) => Array<{ item: Note; score: number }>;
   };
+  generateId: () => string;
   pubsub: {
     subscribe: (topic: string, callback: (...args: any[]) => void) => string;
     unsubscribe: (token: string) => void;
