@@ -2,24 +2,17 @@
 
 import AppState from './state/appState';
 import NoteComponent from './components/note';
-import { createNoteFromForm, validateNote } from './utils/validation';
+import { validateNote } from './utils/validation';
 import { Note } from './types';
 import './index.css';
 
-// Initialize state synchronization with URL
 const syncStateToUrl = (): void => {
-  const path = (document.location.pathname as string) || '/';
-  window.history.replaceState(
-    null,
-    '',
-    path + '#/' + AppState.state.getEncoded()
-  );
+  const path = document.location.pathname || '/';
+  window.history.replaceState(null, '', path + '#/' + AppState.state.getEncoded());
 };
 
-// Subscribe to state changes
 AppState.pubsub.subscribe('appStateChanged', () => {
   syncStateToUrl();
-  // Re-render notes when state changes
   renderAllNotes();
 });
 
@@ -31,44 +24,33 @@ AppState.pubsub.subscribe('notesStateChanged', (notes: Note[] | unknown) => {
   }
 });
 
-// DOM helper functions
-/**
- * Query selector helper
- * @param selector - CSS selector
- * @returns First matching element
- */
-/**
- * Updates the notes container with new notes
- * @param notes - Array of notes to add
- */
 function updateNotesContainer(notes: Note[]): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
 
   notes.forEach((note) => {
     if (validateNote(note)) {
-      const el = NoteComponent(note, () => {
-        AppState.notes.remove(note);
-      }, () => {
-        startEditNote(note);
-      });
+      const el = NoteComponent(
+        note,
+        () => {
+          AppState.notes.remove(note);
+        },
+        () => {
+          startInlineEdit(note);
+        }
+      );
       container.appendChild(el);
     }
   });
 }
 
-/**
- * Renders all notes from current state
- */
 function renderAllNotes(): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
-
   container.innerHTML = '';
   updateNotesContainer(AppState.notes.getAll());
 }
 
-// Set up notes toolbar
 const setupSearch = (): void => {
   const input = document.querySelector<HTMLInputElement>('#notesInputSearch');
   if (!input) return;
@@ -94,116 +76,103 @@ const setupSearch = (): void => {
   }, false);
 };
 
-let editingNoteId: string | null = null;
+const startInlineEdit = (note: Note): void => {
+  const container = document.querySelector<HTMLElement>('#notes');
+  if (!container) return;
 
-const getFormElements = (form: HTMLFormElement) => ({
-  titleInput: form.querySelector('input[name="note"]') as HTMLInputElement | null,
-  bodyInput: form.querySelector('textarea[name="detail"]') as HTMLTextAreaElement | null,
-  legend: form.querySelector('legend'),
-  submitBtn: form.querySelector('input[type="submit"]') as HTMLInputElement | null,
-  cancelBtn: document.getElementById('cancelEditBtn'),
-});
+  const noteEl = container.querySelector<HTMLElement>(`.note[data-id="${note.id}"]`);
+  if (!noteEl) return;
 
-const startEditNote = (note: Note): void => {
-  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!form) return;
+  noteEl.classList.add('note-editing');
 
-  editingNoteId = note.id;
-  const { titleInput, bodyInput, legend, submitBtn, cancelBtn } = getFormElements(form);
+  const titleEl = noteEl.querySelector<HTMLElement>('.note-title');
+  const bodyEl = noteEl.querySelector<HTMLElement>('.note-body');
+  const actions = noteEl.querySelector<HTMLElement>('.note-actions');
 
-  if (titleInput) titleInput.value = note.title;
-  if (bodyInput) bodyInput.value = note.body;
-  if (legend) legend.textContent = 'Edit note';
-  if (submitBtn) submitBtn.value = 'Save';
-  if (cancelBtn) cancelBtn.style.display = 'inline-block';
-  titleInput?.focus();
-};
-
-const cancelEdit = (): void => {
-  editingNoteId = null;
-  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!form) return;
-  form.reset();
-  const { legend, submitBtn, cancelBtn } = getFormElements(form);
-  if (legend) legend.textContent = 'Add note';
-  if (submitBtn) submitBtn.value = 'Submit';
-  if (cancelBtn) cancelBtn.style.display = 'none';
-};
-
-const setupForm = (): void => {
-  const form = document.querySelector<HTMLFormElement>('#addNoteForm');
-  if (!form) return;
-
-  const { cancelBtn } = getFormElements(form);
-  if (cancelBtn) {
-    cancelBtn.addEventListener('click', cancelEdit);
+  if (titleEl) {
+    const input = document.createElement('input');
+    input.className = 'note-title-input';
+    input.value = note.title;
+    titleEl.replaceWith(input);
+    input.focus();
+    input.select();
   }
 
-  form.addEventListener('submit', (e: Event) => {
-    e.preventDefault();
+  if (bodyEl) {
+    const textarea = document.createElement('textarea');
+    textarea.className = 'note-body-input';
+    textarea.value = note.body;
+    bodyEl.replaceWith(textarea);
+  }
 
-    const formData = new FormData(form);
-    const noteData = createNoteFromForm(formData);
-
-    if (!noteData) {
-      console.error('Invalid note data');
-      return;
-    }
-
-    if (editingNoteId) {
-      AppState.notes.update({
-        id: editingNoteId,
-        title: noteData.title,
-        body: noteData.body,
-      });
-      cancelEdit();
-      return;
-    }
-
-    AppState.notes.add({
-      id: AppState.generateId(),
-      title: noteData.title,
-      body: noteData.body,
-    });
-
-    form.reset();
-  }, false);
+  if (actions) {
+    actions.innerHTML = '';
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.textContent = '✓';
+    saveBtn.setAttribute('aria-label', 'Save note');
+    saveBtn.onclick = () => saveInlineEdit(noteEl, note.id);
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.textContent = '✕';
+    cancelBtn.setAttribute('aria-label', 'Cancel edit');
+    cancelBtn.onclick = () => renderAllNotes();
+    actions.appendChild(saveBtn);
+    actions.appendChild(cancelBtn);
+  }
 };
 
-// Initialize App state from URL
+const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
+  const titleInput = noteEl.querySelector<HTMLInputElement>('.note-title-input');
+  const bodyInput = noteEl.querySelector<HTMLTextAreaElement>('.note-body-input');
+  const title = titleInput?.value.trim() || '';
+  const body = bodyInput?.value.trim() || '';
+
+  if (!title) {
+    renderAllNotes();
+    return;
+  }
+
+  AppState.notes.update({ id, title, body });
+};
+
+const setupAddButton = (): void => {
+  const addBtn = document.getElementById('addNoteBtn');
+  if (!addBtn) return;
+
+  addBtn.addEventListener('click', () => {
+    const note: Note = {
+      id: AppState.generateId(),
+      title: 'New Note',
+      body: '',
+    };
+    AppState.notes.add(note);
+    startInlineEdit(note);
+  });
+};
+
 const initializeState = (): void => {
   try {
     const hash = window.location.hash.substring(2);
     if (hash) {
       AppState.state.setEncoded(hash);
     }
-    // If no hash, state is already initialized to empty by default
   } catch (e) {
     console.error('Error initializing state:', e);
-    // Reset to default state
     AppState.state.setEncoded(AppState.state.getEncoded());
   }
 };
 
-// Initial render
 const initializeApp = (): void => {
-  // Initialize state from URL
   initializeState();
-  
-  // Set up event listeners
   setupSearch();
-  setupForm();
-  
-  // Initial render of all notes
+  setupAddButton();
   window.addEventListener('hashchange', () => {
     initializeState();
   }, false);
-  
-  // Initial render
   renderAllNotes();
 };
 
-// Start the application when DOM is ready
 if (document.readyState === 'loading') {
   document.addEventListener('DOMContentLoaded', initializeApp);
 } else {

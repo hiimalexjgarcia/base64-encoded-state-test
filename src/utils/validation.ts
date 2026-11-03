@@ -44,39 +44,3 @@ export const sanitizeString = (str: unknown): string => {
     .replace(/'/g, '&#39;');
 };
 
-/**
- * Form data for note creation
- */
-export interface NoteFormData {
-  title: string;
-  body: string;
-}
-
-/**
- * Validates and sanitizes form data for note creation
- * @param formData - Form data from submission
- * @returns Validated note data or null if invalid
- */
-export const createNoteFromForm = (formData: FormData): NoteFormData | null => {
-  const title = formData.get('note');
-  const body = formData.get('detail');
-
-  if (!title || typeof title !== 'string') {
-    return null;
-  }
-
-  const trimmedTitle = title.trim();
-  const trimmedBody = typeof body === 'string' ? body.trim() : '';
-
-  if (trimmedTitle.length < NOTE_VALIDATION.TITLE_MIN_LENGTH || trimmedTitle.length > NOTE_VALIDATION.TITLE_MAX_LENGTH) {
-    return null;
-  }
-  if (trimmedBody.length > NOTE_VALIDATION.BODY_MAX_LENGTH) {
-    return null;
-  }
-
-  return {
-    title: trimmedTitle,
-    body: trimmedBody,
-  };
-};

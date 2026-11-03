@@ -1,4 +1,4 @@
-import { validateNote, createNoteFromForm, sanitizeString } from '../utils/validation';
+import { validateNote, sanitizeString } from '../utils/validation';
 import { NOTE_VALIDATION } from '../types';
 import { Note } from '../types';
 
@@ -111,70 +111,6 @@ describe('validation utils', () => {
     it('should not modify safe strings', () => {
       expect(sanitizeString('Hello World')).toBe('Hello World');
       expect(sanitizeString('Test 123')).toBe('Test 123');
-    });
-  });
-
-  describe('createNoteFromForm', () => {
-    it('should create note data from valid form', () => {
-      const formData = new FormData();
-      formData.set('note', 'Test Title');
-      formData.set('detail', 'Test Body');
-
-      const result = createNoteFromForm(formData);
-      expect(result).toEqual({
-        title: 'Test Title',
-        body: 'Test Body',
-      });
-    });
-
-    it('should return null for empty title', () => {
-      const formData = new FormData();
-      formData.set('note', '');
-      formData.set('detail', 'Test Body');
-
-      const result = createNoteFromForm(formData);
-      expect(result).toBeNull();
-    });
-
-    it('should trim whitespace from title and body', () => {
-      const formData = new FormData();
-      formData.set('note', '  Test Title  ');
-      formData.set('detail', '  Test Body  ');
-
-      const result = createNoteFromForm(formData);
-      expect(result).toEqual({
-        title: 'Test Title',
-        body: 'Test Body',
-      });
-    });
-
-    it('should return null for title exceeding max length', () => {
-      const formData = new FormData();
-      formData.set('note', 'a'.repeat(NOTE_VALIDATION.TITLE_MAX_LENGTH + 1));
-      formData.set('detail', 'Test Body');
-
-      const result = createNoteFromForm(formData);
-      expect(result).toBeNull();
-    });
-
-    it('should return null for body exceeding max length', () => {
-      const formData = new FormData();
-      formData.set('note', 'Test Title');
-      formData.set('detail', 'a'.repeat(NOTE_VALIDATION.BODY_MAX_LENGTH + 1));
-
-      const result = createNoteFromForm(formData);
-      expect(result).toBeNull();
-    });
-
-    it('should handle missing detail field', () => {
-      const formData = new FormData();
-      formData.set('note', 'Test Title');
-
-      const result = createNoteFromForm(formData);
-      expect(result).toEqual({
-        title: 'Test Title',
-        body: '',
-      });
     });
   });
 });
