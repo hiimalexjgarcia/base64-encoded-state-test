@@ -77,6 +77,10 @@ const setupSearch = (): void => {
 };
 
 const startInlineEdit = (note: Note): void => {
+  if (document.querySelector('.note-editing')) {
+    renderAllNotes();
+  }
+
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
 
