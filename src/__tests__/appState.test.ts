@@ -50,7 +50,7 @@ describe('appState', () => {
 
     it('should not add invalid note', () => {
       const invalidNote = { id: '', title: 'Test' };
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       appState.notes.add(invalidNote as unknown as Note);
       const notes = appState.notes.getAll();
@@ -86,7 +86,7 @@ describe('appState', () => {
     it('should not fail if note not found', () => {
       const note: Note = { id: 'test-id-1', title: 'Test Note', body: 'Test Body' };
       appState.notes.add(note);
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       appState.notes.remove({ id: 'non-existent', title: '', body: '' } as Note);
 
@@ -98,7 +98,7 @@ describe('appState', () => {
     it('should not remove with invalid note', () => {
       const note: Note = { id: 'test-id-1', title: 'Test Note', body: 'Test Body' };
       appState.notes.add(note);
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       appState.notes.remove({ id: '', title: '', body: '' } as unknown as Note);
 
@@ -165,7 +165,7 @@ describe('appState', () => {
     });
 
     it('should handle invalid encoded string', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       appState.state.setEncoded('invalid-base64!!');
 
@@ -182,7 +182,7 @@ describe('appState', () => {
     });
 
     it('should handle null encoded string', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation();
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
       appState.state.setEncoded(null as unknown as string);
       const state = appState.state.get();
       expect(state.notes).toEqual([]);
