@@ -24,6 +24,11 @@ AppState.pubsub.subscribe('notesStateChanged', (notes: Note[] | unknown) => {
   }
 });
 
+function getDisplayNotes(notes: Note[]): Note[] {
+  const showCompleted = (document.getElementById('showCompletedCheckbox') as HTMLInputElement | null)?.checked;
+  return showCompleted ? notes : notes.filter((n) => !n.completed);
+}
+
 function updateNotesContainer(notes: Note[]): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
@@ -51,7 +56,7 @@ function renderAllNotes(): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
   container.innerHTML = '';
-  updateNotesContainer(AppState.notes.getAll());
+  updateNotesContainer(getDisplayNotes(AppState.notes.getAll()));
 }
 
 const setupSearch = (): void => {
@@ -66,7 +71,7 @@ const setupSearch = (): void => {
     const container = document.querySelector<HTMLElement>('#notes');
     if (container) {
       container.innerHTML = '';
-      updateNotesContainer(results);
+      updateNotesContainer(getDisplayNotes(results));
     }
   };
 
@@ -159,6 +164,14 @@ const setupAddButton = (): void => {
   });
 };
 
+const setupShowCompleted = (): void => {
+  const checkbox = document.getElementById('showCompletedCheckbox');
+  if (!checkbox) return;
+  checkbox.addEventListener('change', () => {
+    renderAllNotes();
+  });
+};
+
 const initializeState = (): void => {
   try {
     const hash = window.location.hash.substring(2);
@@ -175,6 +188,7 @@ const initializeApp = (): void => {
   initializeState();
   setupSearch();
   setupAddButton();
+  setupShowCompleted();
   window.addEventListener('hashchange', () => {
     initializeState();
   }, false);
