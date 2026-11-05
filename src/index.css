@@ -181,7 +181,7 @@ input[type="search"]::placeholder {
 }
 
 .note::before {
-    content: '📌';
+    content: '📍';
     position: absolute;
     top: 2px;
     left: 50%;
@@ -190,6 +190,11 @@ input[type="search"]::placeholder {
     line-height: 1;
     pointer-events: none;
     filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.note-pinned::before {
+    content: '📌';
+    font-size: 1.1rem;
 }
 
 .note-actions {
@@ -221,17 +226,6 @@ input[type="search"]::placeholder {
     box-shadow: 4px 6px 14px rgba(0, 0, 0, 0.45);
     outline: 2px solid rgba(183, 28, 28, 0.35);
     outline-offset: 1px;
-}
-
-.note-pinned::after {
-    content: '📌';
-    position: absolute;
-    top: 2px;
-    left: 8px;
-    font-size: 0.95rem;
-    line-height: 1;
-    pointer-events: none;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
 }
 
 .note-complete-checkbox {
