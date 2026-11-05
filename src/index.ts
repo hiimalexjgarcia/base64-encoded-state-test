@@ -11,24 +11,35 @@ const syncStateToUrl = (): void => {
   window.history.replaceState(null, '', path + '#/' + AppState.state.getEncoded());
 };
 
+const getNotesContainer = (): HTMLElement | null =>
+  document.querySelector<HTMLElement>('#notes');
+
+const getSearchInput = (): HTMLInputElement | null =>
+  document.querySelector<HTMLInputElement>('#notesInputSearch');
+
+const isShowCompletedChecked = (): boolean =>
+  !!(document.getElementById('showCompletedCheckbox') as HTMLInputElement | null)?.checked;
+
+const formatNotesCount = (count: number): string =>
+  `${count} note${count !== 1 ? 's' : ''}`;
+
 const updateNotesCount = (): void => {
-  const notes = AppState.notes.getAll();
   const countElement = document.getElementById('notesDisplayCount');
   if (countElement) {
-    countElement.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+    countElement.textContent = formatNotesCount(AppState.notes.getAll().length);
   }
 };
 
-AppState.pubsub.subscribe('appStateChanged', () => {
-  syncStateToUrl();
-  renderAllNotes();
-  updateNotesCount();
-});
+const filterByCompletion = (notes: Note[], showCompleted = isShowCompletedChecked()): Note[] =>
+  showCompleted ? notes : notes.filter((n) => !n.completed);
 
-function getDisplayNotes(notes: Note[]): Note[] {
-  const showCompleted = (document.getElementById('showCompletedCheckbox') as HTMLInputElement | null)?.checked;
-  return showCompleted ? notes : notes.filter((n) => !n.completed);
-}
+const getSearchResults = (query: string): Note[] => {
+  const trimmed = query.trim();
+  return trimmed ? AppState.notes.search(trimmed).map((r) => r.item) : AppState.notes.getAll();
+};
+
+const getVisibleNotes = (query = getSearchInput()?.value ?? ''): Note[] =>
+  filterByCompletion(getSearchResults(query));
 
 function createNoteElement(note: Note): HTMLElement {
   return NoteComponent(
@@ -40,7 +51,7 @@ function createNoteElement(note: Note): HTMLElement {
 }
 
 function renderNotes(notes: Note[]): void {
-  const container = document.querySelector<HTMLElement>('#notes');
+  const container = getNotesContainer();
   if (!container) return;
   container.innerHTML = '';
   notes.forEach((note) => {
@@ -51,28 +62,25 @@ function renderNotes(notes: Note[]): void {
 }
 
 function renderAllNotes(): void {
-  renderNotes(getDisplayNotes(AppState.notes.getAll()));
+  renderNotes(getVisibleNotes());
 }
 
+AppState.pubsub.subscribe('appStateChanged', () => {
+  syncStateToUrl();
+  renderAllNotes();
+  updateNotesCount();
+});
+
 const setupSearch = (): void => {
-  const input = document.querySelector<HTMLInputElement>('#notesInputSearch');
+  const input = getSearchInput();
   if (!input) return;
 
-  const search = (query: string): void => {
-    const results = query.trim()
-      ? AppState.notes.search(query).map((r) => r.item)
-      : AppState.notes.getAll();
-
-    renderNotes(getDisplayNotes(results));
+  const onSearch = (): void => {
+    renderAllNotes();
   };
 
-  input.addEventListener('input', (e: Event) => {
-    search((e.target as HTMLInputElement).value);
-  }, false);
-
-  input.addEventListener('search', (e: Event) => {
-    search((e.target as HTMLInputElement).value);
-  }, false);
+  input.addEventListener('input', onSearch, false);
+  input.addEventListener('search', onSearch, false);
 };
 
 const startInlineEdit = (note: Note): void => {
