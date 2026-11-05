@@ -2,13 +2,15 @@
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/671744ae-7c50-4f77-8c10-224ffadd9a1a/deploy-status)](https://app.netlify.com/projects/vigorous-wilson-ce6cfa/deploys)
 
-A vanilla TypeScript sticky note web app that persists all application state in the URL hash as compressed, base64url-encoded data. Share notes by simply sharing the URL.
+A vanilla TypeScript sticky note web app that persists all application state in the URL hash as base64url-encoded data. Share notes by simply sharing the URL.
 
 ## Features
 
-- **Sticky Note UI** - Notes displayed as colorful sticky cards in a grid layout
+- **Corkboard UI** - Notes displayed as colorful sticky cards on a corkboard background
 - **Add Notes** - Click "Add Note" to create a new note and edit inline
 - **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time)
+- **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
+- **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
 - **Delete Notes** - Remove notes with the delete button
 - **Search** - Fuzzy search across note titles and bodies using Fuse.js
 - **URL State Persistence** - Entire app state is encoded in the URL hash for easy sharing and bookmarking
@@ -65,26 +67,32 @@ graph TD
     F --> G[PubSub publishes appStateChanged]
     G --> H[Sync URL hash via syncStateToUrl]
     G --> I[renderAllNotes called]
-    I --> J[Get all notes from AppState.notes.getAll]
-    J --> K[Render each note via NoteComponent]
-    K --> L[Update notes count via notesStateChanged]
+    I --> J[Get notes from AppState.notes.getAll]
+    J --> K[Filter out completed unless Show completed checked]
+    K --> L[Render each note via NoteComponent]
+    L --> M[Update notes count via notesStateChanged]
     
-    M[User clicks Add Note] --> N[Create new note with generateId]
-    N --> O[AppState.notes.add]
-    O --> F
+    N[User clicks Add Note] --> O[Create new note with generateId]
+    O --> P[AppState.notes.add]
+    P --> F
     
-    P[User clicks Edit on note] --> Q[startInlineEdit]
-    Q --> R[Replace title/body with inputs]
-    R --> S[User saves]
-    S --> T[AppState.notes.update]
-    T --> F
+    Q[User clicks Edit on note] --> R[startInlineEdit]
+    R --> S[Replace title/body with inputs]
+    S --> T[User saves]
+    T --> U[AppState.notes.update]
+    U --> F
     
-    U[User clicks Delete] --> V[AppState.notes.remove]
-    V --> F
+    V[User toggles checkbox on note] --> W[AppState.notes.update completed]
+    W --> F
     
-    W[User types in search] --> X[AppState.notes.search with Fuse.js]
-    X --> Y[Render filtered results]
+    X[User clicks Delete] --> Y[AppState.notes.remove]
+    Y --> F
     
-    Z[User navigates hash] --> AA[hashchange event]
-    AA --> C
+    Z[User types in search] --> AA[AppState.notes.search with Fuse.js]
+    AA --> K
+    
+    AB[User toggles Show completed] --> I
+    
+    AC[User navigates hash] --> AD[hashchange event]
+    AD --> C
 ```
