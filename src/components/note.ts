@@ -36,10 +36,12 @@ const Note = (
   note: NoteType,
   deleteCallback: () => void,
   editCallback?: () => void,
-  toggleCallback?: () => void
+  toggleCallback?: () => void,
+  pinCallback?: () => void
 ): HTMLElement => {
   const el = document.createElement('div');
-  el.className = 'note' + (note.completed ? ' note-completed' : '');
+  el.className =
+    'note' + (note.completed ? ' note-completed' : '') + (note.pinned ? ' note-pinned' : '');
   el.dataset.id = note.id;
 
   const actions = document.createElement('div');
@@ -53,6 +55,17 @@ const Note = (
     checkbox.setAttribute('aria-label', 'Mark note as completed');
     checkbox.addEventListener('change', toggleCallback);
     actions.appendChild(checkbox);
+  }
+
+  if (pinCallback) {
+    actions.appendChild(
+      createButton(
+        'note-pin' + (note.pinned ? ' is-pinned' : ''),
+        note.pinned ? 'Unpin note' : 'Pin note to top',
+        '📌',
+        pinCallback
+      )
+    );
   }
 
   if (editCallback) {

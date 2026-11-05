@@ -9,6 +9,7 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Corkboard UI** - Notes displayed as colorful sticky cards on a corkboard background
 - **Add Notes** - Click "Add Note" to create a new note and edit inline
 - **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time)
+- **Pin to Top** - Pin notes to keep them prioritized at the top of the board
 - **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
 - **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
 - **Delete Notes** - Remove notes with the delete button
@@ -51,7 +52,7 @@ npm run test:coverage
 
 ## How It Works
 
-Application state (all notes) is serialized, compacted with short keys, encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL.
+Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL.
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 
@@ -67,32 +68,30 @@ graph TD
     F --> G[PubSub publishes appStateChanged]
     G --> H[Sync URL hash via syncStateToUrl]
     G --> I[renderAllNotes called]
-    I --> J[Get notes from AppState.notes.getAll]
-    J --> K[Filter out completed unless Show completed checked]
-    K --> L[Render each note via NoteComponent]
-    L --> M[Update notes count via notesStateChanged]
-    
+    G --> M[Update notes count]
+    I --> J[Get visible notes via search + completion filter + pin sort]
+    J --> L[Render each note via NoteComponent]
+
     N[User clicks Add Note] --> O[Create new note with generateId]
     O --> P[AppState.notes.add]
     P --> F
-    
+
     Q[User clicks Edit on note] --> R[startInlineEdit]
     R --> S[Replace title/body with inputs]
     S --> T[User saves]
     T --> U[AppState.notes.update]
     U --> F
-    
-    V[User toggles checkbox on note] --> W[AppState.notes.update completed]
+
+    V[User toggles complete/pin on note] --> W[AppState.notes.update]
     W --> F
-    
+
     X[User clicks Delete] --> Y[AppState.notes.remove]
     Y --> F
-    
-    Z[User types in search] --> AA[AppState.notes.search with Fuse.js]
-    AA --> K
-    
+
+    Z[User types in search] --> I
+
     AB[User toggles Show completed] --> I
-    
+
     AC[User navigates hash] --> AD[hashchange event]
     AD --> C
 ```

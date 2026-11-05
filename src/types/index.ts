@@ -10,6 +10,7 @@ export interface Note {
   title: string;
   body: string;
   completed?: boolean;
+  pinned?: boolean;
 }
 
 /**

@@ -23,7 +23,8 @@ export const validateNote = (note: unknown): note is Note => {
     n.title.length >= NOTE_VALIDATION.TITLE_MIN_LENGTH &&
     n.title.length <= NOTE_VALIDATION.TITLE_MAX_LENGTH &&
     (n.body === undefined || (typeof n.body === 'string' && n.body.length <= NOTE_VALIDATION.BODY_MAX_LENGTH)) &&
-    (n.completed === undefined || typeof n.completed === 'boolean')
+    (n.completed === undefined || typeof n.completed === 'boolean') &&
+    (n.pinned === undefined || typeof n.pinned === 'boolean')
   );
 };
 

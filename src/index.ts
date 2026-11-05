@@ -30,6 +30,9 @@ const updateNotesCount = (): void => {
   }
 };
 
+const sortPinnedFirst = (notes: Note[]): Note[] =>
+  [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
+
 const filterByCompletion = (notes: Note[], showCompleted = isShowCompletedChecked()): Note[] =>
   showCompleted ? notes : notes.filter((n) => !n.completed);
 
@@ -39,14 +42,15 @@ const getSearchResults = (query: string): Note[] => {
 };
 
 const getVisibleNotes = (query = getSearchInput()?.value ?? ''): Note[] =>
-  filterByCompletion(getSearchResults(query));
+  sortPinnedFirst(filterByCompletion(getSearchResults(query)));
 
 function createNoteElement(note: Note): HTMLElement {
   return NoteComponent(
     note,
     () => AppState.notes.remove(note),
     () => startInlineEdit(note),
-    () => AppState.notes.update({ ...note, completed: !note.completed })
+    () => AppState.notes.update({ ...note, completed: !note.completed }),
+    () => AppState.notes.update({ ...note, pinned: !note.pinned })
   );
 }
 
@@ -145,7 +149,13 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
   }
 
   const existing = AppState.notes.getAll().find((n) => n.id === id);
-  AppState.notes.update({ id, title, body, completed: existing?.completed });
+  AppState.notes.update({
+    id,
+    title,
+    body,
+    completed: existing?.completed,
+    pinned: existing?.pinned,
+  });
 };
 
 const setupAddButton = (): void => {

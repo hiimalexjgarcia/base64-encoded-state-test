@@ -214,6 +214,16 @@ input[type="search"]::placeholder {
     opacity: 1;
 }
 
+.note-pin.is-pinned {
+    opacity: 1;
+}
+
+.note-pinned {
+    box-shadow: 4px 6px 14px rgba(0, 0, 0, 0.45);
+    outline: 2px solid rgba(183, 28, 28, 0.35);
+    outline-offset: 1px;
+}
+
 .note-complete-checkbox {
     cursor: pointer;
     margin-right: 4px;

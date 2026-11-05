@@ -38,6 +38,7 @@ const compactState = (state: AppState) => ({
     const compact: Record<string, any> = { i: note.id, t: note.title };
     if (note.body) compact.b = note.body;
     if (note.completed) compact.c = 1;
+    if (note.pinned) compact.p = 1;
     return compact;
   }),
 });
@@ -57,6 +58,7 @@ const expandState = (compact: unknown): AppState => {
       body: n.b || '',
     };
     if (n.c) note.completed = true;
+    if (n.p) note.pinned = true;
     if (validateNote(note)) notes.push(note);
   }
   return { notes };
