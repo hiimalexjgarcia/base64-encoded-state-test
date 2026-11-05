@@ -46,11 +46,14 @@ const getSearchResults = (query: string): Note[] => {
 const getVisibleNotes = (query = getSearchInput()?.value ?? ''): Note[] =>
   sortPinnedFirst(filterByCompletion(getSearchResults(query)));
 
-const cycleColor = (color?: NoteColor): NoteColor | undefined => {
+const randomColor = (): NoteColor =>
+  NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
+
+const cycleColor = (color?: NoteColor): NoteColor => {
   if (!color) return NOTE_COLORS[0];
   const idx = NOTE_COLORS.indexOf(color);
-  if (idx < 0 || idx === NOTE_COLORS.length - 1) return undefined;
-  return NOTE_COLORS[idx + 1];
+  if (idx < 0) return NOTE_COLORS[0];
+  return NOTE_COLORS[(idx + 1) % NOTE_COLORS.length];
 };
 
 function createNoteElement(note: Note): HTMLElement {
@@ -60,11 +63,7 @@ function createNoteElement(note: Note): HTMLElement {
     onToggleComplete: () => AppState.notes.update({ ...note, completed: !note.completed }),
     onPin: () => AppState.notes.update({ ...note, pinned: !note.pinned }),
     onCycleColor: () => {
-      const next = cycleColor(note.color);
-      const updated: Note = { ...note };
-      if (next) updated.color = next;
-      else delete updated.color;
-      AppState.notes.update(updated);
+      AppState.notes.update({ ...note, color: cycleColor(note.color) });
     },
   });
 }
@@ -185,6 +184,7 @@ const setupAddButton = (): void => {
       id: AppState.generateId(),
       title: 'New Note',
       body: '',
+      color: randomColor(),
     };
     AppState.notes.add(note);
     startInlineEdit(note);
