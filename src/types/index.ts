@@ -5,12 +5,16 @@
 /**
  * A note in the application
  */
+export const NOTE_COLORS = ['yellow', 'green', 'blue', 'pink', 'orange'] as const;
+export type NoteColor = (typeof NOTE_COLORS)[number];
+
 export interface Note {
   id: string;
   title: string;
   body: string;
   completed?: boolean;
   pinned?: boolean;
+  color?: NoteColor;
 }
 
 /**
@@ -58,6 +62,7 @@ export interface IAppState {
     add: (note: Note) => void;
     update: (note: Note) => void;
     remove: (note: Note) => void;
+    clearCompleted: () => void;
     search: (query: string) => Array<{ item: Note; score: number }>;
   };
   generateId: () => string;

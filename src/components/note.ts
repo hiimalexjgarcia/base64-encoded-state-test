@@ -1,5 +1,13 @@
-import { Note as NoteType } from '../types';
+import { Note as NoteType, NoteColor } from '../types';
 import { sanitizeString } from '../utils/validation';
+
+export interface NoteActions {
+  onDelete: () => void;
+  onEdit?: () => void;
+  onToggleComplete?: () => void;
+  onPin?: () => void;
+  onCycleColor?: () => void;
+}
 
 const createButton = (className: string, label: string, text: string, onClick: () => void): HTMLButtonElement => {
   const button = document.createElement('button');
@@ -32,46 +40,51 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
   return button;
 };
 
-const Note = (
-  note: NoteType,
-  deleteCallback: () => void,
-  editCallback?: () => void,
-  toggleCallback?: () => void,
-  pinCallback?: () => void
-): HTMLElement => {
+const colorClass = (color?: NoteColor): string => (color ? ` note-color-${color}` : '');
+
+const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
+  const { onDelete, onEdit, onToggleComplete, onPin, onCycleColor } = actionsConfig;
+
   const el = document.createElement('div');
   el.className =
-    'note' + (note.completed ? ' note-completed' : '') + (note.pinned ? ' note-pinned' : '');
+    'note' +
+    (note.completed ? ' note-completed' : '') +
+    (note.pinned ? ' note-pinned' : '') +
+    colorClass(note.color);
   el.dataset.id = note.id;
 
   const actions = document.createElement('div');
   actions.className = 'note-actions';
 
-  if (toggleCallback) {
+  if (onToggleComplete) {
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
     checkbox.className = 'note-complete-checkbox';
     checkbox.checked = !!note.completed;
     checkbox.setAttribute('aria-label', 'Mark note as completed');
-    checkbox.addEventListener('change', toggleCallback);
+    checkbox.addEventListener('change', onToggleComplete);
     actions.appendChild(checkbox);
   }
 
-  if (pinCallback) {
+  if (onPin) {
     actions.appendChild(
       createButton(
         'note-pin' + (note.pinned ? ' is-pinned' : ''),
         note.pinned ? 'Unpin note' : 'Pin note to top',
         '📌',
-        pinCallback
+        onPin
       )
     );
   }
 
-  if (editCallback) {
-    actions.appendChild(createButton('note-edit', 'Edit note', '✎', editCallback));
+  if (onCycleColor) {
+    actions.appendChild(createButton('note-color', 'Change note color', '🎨', onCycleColor));
   }
-  actions.appendChild(createDeleteButton(deleteCallback));
+
+  if (onEdit) {
+    actions.appendChild(createButton('note-edit', 'Edit note', '✎', onEdit));
+  }
+  actions.appendChild(createDeleteButton(onDelete));
 
   const title = document.createElement('div');
   title.className = 'note-title';

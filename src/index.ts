@@ -3,8 +3,10 @@
 import AppState from './state/appState';
 import NoteComponent from './components/note';
 import { validateNote } from './utils/validation';
-import { Note } from './types';
+import { Note, NOTE_COLORS, NoteColor } from './types';
 import './index.css';
+
+let editingId: string | null = null;
 
 const syncStateToUrl = (): void => {
   const path = document.location.pathname || '/';
@@ -44,14 +46,27 @@ const getSearchResults = (query: string): Note[] => {
 const getVisibleNotes = (query = getSearchInput()?.value ?? ''): Note[] =>
   sortPinnedFirst(filterByCompletion(getSearchResults(query)));
 
+const cycleColor = (color?: NoteColor): NoteColor | undefined => {
+  if (!color) return NOTE_COLORS[0];
+  const idx = NOTE_COLORS.indexOf(color);
+  if (idx < 0 || idx === NOTE_COLORS.length - 1) return undefined;
+  return NOTE_COLORS[idx + 1];
+};
+
 function createNoteElement(note: Note): HTMLElement {
-  return NoteComponent(
-    note,
-    () => AppState.notes.remove(note),
-    () => startInlineEdit(note),
-    () => AppState.notes.update({ ...note, completed: !note.completed }),
-    () => AppState.notes.update({ ...note, pinned: !note.pinned })
-  );
+  return NoteComponent(note, {
+    onDelete: () => AppState.notes.remove(note),
+    onEdit: () => startInlineEdit(note),
+    onToggleComplete: () => AppState.notes.update({ ...note, completed: !note.completed }),
+    onPin: () => AppState.notes.update({ ...note, pinned: !note.pinned }),
+    onCycleColor: () => {
+      const next = cycleColor(note.color);
+      const updated: Note = { ...note };
+      if (next) updated.color = next;
+      else delete updated.color;
+      AppState.notes.update(updated);
+    },
+  });
 }
 
 function renderNotes(notes: Note[]): void {
@@ -66,6 +81,7 @@ function renderNotes(notes: Note[]): void {
 }
 
 function renderAllNotes(): void {
+  editingId = null;
   renderNotes(getVisibleNotes());
 }
 
@@ -88,16 +104,17 @@ const setupSearch = (): void => {
 };
 
 const startInlineEdit = (note: Note): void => {
-  if (document.querySelector('.note-editing')) {
+  if (editingId) {
     renderAllNotes();
   }
 
-  const container = document.querySelector<HTMLElement>('#notes');
+  const container = getNotesContainer();
   if (!container) return;
 
   const noteEl = container.querySelector<HTMLElement>(`.note[data-id="${note.id}"]`);
   if (!noteEl) return;
 
+  editingId = note.id;
   noteEl.classList.add('note-editing');
 
   const titleEl = noteEl.querySelector<HTMLElement>('.note-title');
@@ -155,6 +172,7 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
     body,
     completed: existing?.completed,
     pinned: existing?.pinned,
+    color: existing?.color,
   });
 };
 
@@ -181,6 +199,36 @@ const setupShowCompleted = (): void => {
   });
 };
 
+const setupCopyLink = (): void => {
+  const btn = document.getElementById('copyLinkBtn') as HTMLButtonElement | null;
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const url = window.location.href;
+    try {
+      await navigator.clipboard.writeText(url);
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => {
+        btn.textContent = original;
+      }, 1500);
+    } catch {
+      window.prompt('Copy this link:', url);
+    }
+  });
+};
+
+const setupClearCompleted = (): void => {
+  const btn = document.getElementById('clearCompletedBtn');
+  if (!btn) return;
+  btn.addEventListener('click', () => {
+    const completedCount = AppState.notes.getAll().filter((n) => n.completed).length;
+    if (completedCount === 0) return;
+    if (window.confirm(`Clear ${completedCount} completed note${completedCount !== 1 ? 's' : ''}?`)) {
+      AppState.notes.clearCompleted();
+    }
+  });
+};
+
 const initializeState = (): void => {
   try {
     const hash = window.location.hash.substring(2);
@@ -197,6 +245,8 @@ const initializeApp = (): void => {
   initializeState();
   setupSearch();
   setupAddButton();
+  setupCopyLink();
+  setupClearCompleted();
   setupShowCompleted();
   window.addEventListener('hashchange', () => {
     initializeState();

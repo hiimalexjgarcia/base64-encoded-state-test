@@ -2,7 +2,7 @@
  * Input validation utilities
  */
 
-import { Note, NOTE_VALIDATION } from '../types';
+import { Note, NOTE_COLORS, NOTE_VALIDATION } from '../types';
 
 /**
  * Validates a note object
@@ -24,7 +24,8 @@ export const validateNote = (note: unknown): note is Note => {
     n.title.length <= NOTE_VALIDATION.TITLE_MAX_LENGTH &&
     (n.body === undefined || (typeof n.body === 'string' && n.body.length <= NOTE_VALIDATION.BODY_MAX_LENGTH)) &&
     (n.completed === undefined || typeof n.completed === 'boolean') &&
-    (n.pinned === undefined || typeof n.pinned === 'boolean')
+    (n.pinned === undefined || typeof n.pinned === 'boolean') &&
+    (n.color === undefined || (typeof n.color === 'string' && NOTE_COLORS.includes(n.color as any)))
   );
 };
 

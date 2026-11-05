@@ -4,7 +4,7 @@
  */
 
 import { nanoid } from 'nanoid';
-import { AppState, Note } from '../types';
+import { AppState, Note, NOTE_COLORS, NoteColor } from '../types';
 import { validateNote } from './validation';
 
 const uint8ToBase64 = (uint8: Uint8Array): string => {
@@ -39,6 +39,7 @@ const compactState = (state: AppState) => ({
     if (note.body) compact.b = note.body;
     if (note.completed) compact.c = 1;
     if (note.pinned) compact.p = 1;
+    if (note.color) compact.k = note.color;
     return compact;
   }),
 });
@@ -59,6 +60,7 @@ const expandState = (compact: unknown): AppState => {
     };
     if (n.c) note.completed = true;
     if (n.p) note.pinned = true;
+    if (typeof n.k === 'string' && NOTE_COLORS.includes(n.k as NoteColor)) note.color = n.k as NoteColor;
     if (validateNote(note)) notes.push(note);
   }
   return { notes };

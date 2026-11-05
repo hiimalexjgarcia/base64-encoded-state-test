@@ -10,8 +10,11 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Add Notes** - Click "Add Note" to create a new note and edit inline
 - **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time)
 - **Pin to Top** - Pin notes to keep them prioritized at the top of the board
+- **Note Colors** - Cycle a note through a small sticky-note color palette
 - **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
 - **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
+- **Clear Completed** - Remove all completed notes in one action
+- **Copy Share Link** - Copy the current URL (with full note state) to the clipboard
 - **Delete Notes** - Remove notes with the delete button
 - **Search** - Fuzzy search across note titles and bodies using Fuse.js
 - **URL State Persistence** - Entire app state is encoded in the URL hash for easy sharing and bookmarking
@@ -52,7 +55,7 @@ npm run test:coverage
 
 ## How It Works
 
-Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL.
+Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL.
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 

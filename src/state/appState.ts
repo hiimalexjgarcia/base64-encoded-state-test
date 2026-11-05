@@ -229,6 +229,16 @@ const createAppState = (): IAppState => {
       },
 
       /**
+       * Removes all completed notes from state
+       */
+      clearCompleted: (): void => {
+        setState((currentState) => ({
+          ...currentState,
+          notes: currentState.notes.filter(n => !n.completed)
+        }));
+      },
+
+      /**
        * Searches notes using Fuse.js
        * @param query - Search query
        * @returns Search results
