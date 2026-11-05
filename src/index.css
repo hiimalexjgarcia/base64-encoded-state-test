@@ -180,22 +180,7 @@ input[type="search"]::placeholder {
     z-index: 2;
 }
 
-.note::before {
-    content: '📍';
-    position: absolute;
-    top: 2px;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 1rem;
-    line-height: 1;
-    pointer-events: none;
-    filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
-}
 
-.note-pinned::before {
-    content: '📌';
-    font-size: 1.1rem;
-}
 
 .note-actions {
     position: absolute;
