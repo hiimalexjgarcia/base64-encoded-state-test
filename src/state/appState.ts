@@ -55,50 +55,14 @@ const createAppState = (): IAppState => {
   };
 
   /**
-   * Publishes state change events with diff information
+   * Publishes state change events
    * @param newState - New state after update
-   * @param oldState - Previous state
    */
-  const publishStateChange = (newState: AppStateType, oldState: AppStateType): void => {
-    // Ensure both states have notes arrays
+  const publishStateChange = (newState: AppStateType): void => {
     const safeNewState = normalizeState(newState);
-    const safeOldState = normalizeState(oldState);
-
-    // Always publish full state change
     const appStateChangedCallbacks = subscribers['appStateChanged'];
     if (appStateChangedCallbacks) {
       appStateChangedCallbacks.forEach(callback => callback({ obj: cloneState(safeNewState) }));
-    }
-
-    // Publish notes-specific events
-    if (safeNewState.notes !== safeOldState.notes) {
-      const notesStateChangedCallbacks = subscribers['notesStateChanged'];
-      if (notesStateChangedCallbacks) {
-        notesStateChangedCallbacks.forEach(callback => callback(cloneState(safeNewState.notes)));
-      }
-
-      // Calculate diff for created notes
-      const oldNotes = safeOldState.notes || [];
-      const newNotes = safeNewState.notes || [];
-      const notesCreated = newNotes.filter(
-        newNote => !oldNotes.some(oldNote => oldNote.id === newNote.id)
-      );
-      const notesDeleted = oldNotes.filter(
-        oldNote => !newNotes.some(newNote => newNote.id === oldNote.id)
-      );
-
-      if (notesCreated.length > 0) {
-        const notesCreatedCallbacks = subscribers['notesCreated'];
-        if (notesCreatedCallbacks) {
-          notesCreatedCallbacks.forEach(callback => callback(cloneState(notesCreated)));
-        }
-      }
-      if (notesDeleted.length > 0) {
-        const notesDeletedCallbacks = subscribers['notesDeleted'];
-        if (notesDeletedCallbacks) {
-          notesDeletedCallbacks.forEach(callback => callback(cloneState(notesDeleted)));
-        }
-      }
     }
   };
 
@@ -108,10 +72,8 @@ const createAppState = (): IAppState => {
    */
   const setState = (updater: (current: AppStateType) => AppStateType): void => {
     try {
-      const oldState = normalizeState(cloneState(state));
       const newState = normalizeState(updater(normalizeState(cloneState(state))));
 
-      // Validate new state structure
       if (!newState || typeof newState !== 'object') {
         handleError(new Error('Invalid state: must be an object'), {
           module: 'state',
@@ -121,7 +83,7 @@ const createAppState = (): IAppState => {
       }
 
       state = newState;
-      publishStateChange(newState, oldState);
+      publishStateChange(newState);
 
     } catch (error) {
       handleError(error, {

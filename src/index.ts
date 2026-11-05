@@ -11,17 +11,18 @@ const syncStateToUrl = (): void => {
   window.history.replaceState(null, '', path + '#/' + AppState.state.getEncoded());
 };
 
+const updateNotesCount = (): void => {
+  const notes = AppState.notes.getAll();
+  const countElement = document.getElementById('notesDisplayCount');
+  if (countElement) {
+    countElement.textContent = `${notes.length} note${notes.length !== 1 ? 's' : ''}`;
+  }
+};
+
 AppState.pubsub.subscribe('appStateChanged', () => {
   syncStateToUrl();
   renderAllNotes();
-});
-
-AppState.pubsub.subscribe('notesStateChanged', (notes: Note[] | unknown) => {
-  const notesArray = Array.isArray(notes) ? notes : [];
-  const countElement = document.getElementById('notesDisplayCount');
-  if (countElement) {
-    countElement.textContent = `${notesArray.length} note${notesArray.length !== 1 ? 's' : ''}`;
-  }
+  updateNotesCount();
 });
 
 function getDisplayNotes(notes: Note[]): Note[] {
