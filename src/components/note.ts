@@ -32,13 +32,28 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
   return button;
 };
 
-const Note = (note: NoteType, deleteCallback: () => void, editCallback?: () => void): HTMLElement => {
+const Note = (
+  note: NoteType,
+  deleteCallback: () => void,
+  editCallback?: () => void,
+  toggleCallback?: () => void
+): HTMLElement => {
   const el = document.createElement('div');
-  el.className = 'note';
+  el.className = 'note' + (note.completed ? ' note-completed' : '');
   el.dataset.id = note.id;
 
   const actions = document.createElement('div');
   actions.className = 'note-actions';
+
+  if (toggleCallback) {
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'note-complete-checkbox';
+    checkbox.checked = !!note.completed;
+    checkbox.setAttribute('aria-label', 'Mark note as completed');
+    checkbox.addEventListener('change', toggleCallback);
+    actions.appendChild(checkbox);
+  }
 
   if (editCallback) {
     actions.appendChild(createButton('note-edit', 'Edit note', '✎', editCallback));
@@ -56,6 +71,13 @@ const Note = (note: NoteType, deleteCallback: () => void, editCallback?: () => v
   el.appendChild(actions);
   el.appendChild(title);
   el.appendChild(body);
+
+  if (note.completed) {
+    const overlay = document.createElement('div');
+    overlay.className = 'note-completed-overlay';
+    overlay.textContent = 'X';
+    el.appendChild(overlay);
+  }
 
   return el;
 };

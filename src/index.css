@@ -142,6 +142,26 @@ input[type="search"]::placeholder {
     opacity: 1;
 }
 
+.note-complete-checkbox {
+    cursor: pointer;
+    margin-right: 4px;
+    transform: scale(1.2);
+}
+
+.note-completed-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-15deg);
+    font-size: 8rem;
+    font-weight: bold;
+    color: rgba(220, 20, 60, 0.7);
+    pointer-events: none;
+    line-height: 1;
+    font-family: 'Marker Felt', 'Comic Sans MS', cursive, sans-serif;
+    z-index: 1;
+}
+
 .note-title {
     font-weight: bold;
     display: block;

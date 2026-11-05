@@ -35,8 +35,9 @@ const fromBase64Url = (str: string): string => {
 
 const compactState = (state: AppState) => ({
   n: state.notes.map((note) => {
-    const compact: Record<string, string> = { i: note.id, t: note.title };
+    const compact: Record<string, any> = { i: note.id, t: note.title };
     if (note.body) compact.b = note.body;
+    if (note.completed) compact.c = 1;
     return compact;
   }),
 });
@@ -49,8 +50,13 @@ const expandState = (compact: unknown): AppState => {
   const notes: Note[] = [];
   for (const item of data.n) {
     if (!item || typeof item !== 'object') continue;
-    const n = item as Record<string, string>;
-    const note = { id: n.i || '', title: n.t || '', body: n.b || '' };
+    const n = item as Record<string, any>;
+    const note: Note = {
+      id: n.i || '',
+      title: n.t || '',
+      body: n.b || '',
+    };
+    if (n.c) note.completed = true;
     if (validateNote(note)) notes.push(note);
   }
   return { notes };

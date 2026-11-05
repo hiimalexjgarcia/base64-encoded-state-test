@@ -37,6 +37,9 @@ function updateNotesContainer(notes: Note[]): void {
         },
         () => {
           startInlineEdit(note);
+        },
+        () => {
+          AppState.notes.update({ ...note, completed: !note.completed });
         }
       );
       container.appendChild(el);
@@ -137,7 +140,8 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
     return;
   }
 
-  AppState.notes.update({ id, title, body });
+  const existing = AppState.notes.getAll().find((n) => n.id === id);
+  AppState.notes.update({ id, title, body, completed: existing?.completed });
 };
 
 const setupAddButton = (): void => {
