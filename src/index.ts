@@ -30,34 +30,28 @@ function getDisplayNotes(notes: Note[]): Note[] {
   return showCompleted ? notes : notes.filter((n) => !n.completed);
 }
 
-function updateNotesContainer(notes: Note[]): void {
+function createNoteElement(note: Note): HTMLElement {
+  return NoteComponent(
+    note,
+    () => AppState.notes.remove(note),
+    () => startInlineEdit(note),
+    () => AppState.notes.update({ ...note, completed: !note.completed })
+  );
+}
+
+function renderNotes(notes: Note[]): void {
   const container = document.querySelector<HTMLElement>('#notes');
   if (!container) return;
-
+  container.innerHTML = '';
   notes.forEach((note) => {
     if (validateNote(note)) {
-      const el = NoteComponent(
-        note,
-        () => {
-          AppState.notes.remove(note);
-        },
-        () => {
-          startInlineEdit(note);
-        },
-        () => {
-          AppState.notes.update({ ...note, completed: !note.completed });
-        }
-      );
-      container.appendChild(el);
+      container.appendChild(createNoteElement(note));
     }
   });
 }
 
 function renderAllNotes(): void {
-  const container = document.querySelector<HTMLElement>('#notes');
-  if (!container) return;
-  container.innerHTML = '';
-  updateNotesContainer(getDisplayNotes(AppState.notes.getAll()));
+  renderNotes(getDisplayNotes(AppState.notes.getAll()));
 }
 
 const setupSearch = (): void => {
@@ -69,11 +63,7 @@ const setupSearch = (): void => {
       ? AppState.notes.search(query).map((r) => r.item)
       : AppState.notes.getAll();
 
-    const container = document.querySelector<HTMLElement>('#notes');
-    if (container) {
-      container.innerHTML = '';
-      updateNotesContainer(getDisplayNotes(results));
-    }
+    renderNotes(getDisplayNotes(results));
   };
 
   input.addEventListener('input', (e: Event) => {
