@@ -104,6 +104,7 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
   if (note.completed) {
     const overlay = document.createElement('div');
     overlay.className = 'note-completed-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
     overlay.textContent = 'X';
     el.appendChild(overlay);
   }

@@ -15,7 +15,7 @@ type AppStateInstance = typeof import('../state/appState').default;
 const TOOLBAR_HTML = `
   <div class="container">
     <h1>Notes</h1>
-    <div class="d-flex mb-3" role="toolbar">
+    <div class="d-flex mb-3" role="group" aria-label="Note controls">
       <button type="button" id="addNoteBtn" class="btn btn-primary">Add Note</button>
       <button type="button" id="copyLinkBtn" class="btn">Copy link</button>
       <button type="button" id="clearCompletedBtn" class="btn">Clear completed</button>
@@ -23,8 +23,8 @@ const TOOLBAR_HTML = `
         <input type="checkbox" id="showCompletedCheckbox" />
         Show completed
       </label>
-      <span id="notesDisplayCount" class="flex-fill text-right"></span>
-      <input type="search" id="notesInputSearch" name="q" />
+      <span id="notesDisplayCount" class="flex-fill text-right" aria-live="polite" aria-atomic="true"></span>
+      <input type="search" id="notesInputSearch" name="q" aria-label="Search notes" />
     </div>
     <div id="notes"></div>
   </div>
@@ -158,7 +158,11 @@ describe('toolbar interactions', () => {
     const input = document.querySelector('.note-title-input') as HTMLInputElement;
     expect(input).not.toBeNull();
     expect(input.value).toBe('New Note');
+    expect(input.getAttribute('aria-label')).toBe('Note title');
     expect(document.activeElement).toBe(input);
+
+    const bodyInput = document.querySelector('.note-body-input') as HTMLTextAreaElement;
+    expect(bodyInput.getAttribute('aria-label')).toBe('Note body');
   });
 
   it('saves inline edits and syncs the URL hash', async () => {
@@ -204,6 +208,9 @@ describe('toolbar interactions', () => {
     expect(state.notes.getAll()[0].title).toBe('New Note');
     expect(document.querySelector('.note-title-input')).not.toBeNull();
     expect(document.querySelector('.note-edit-error')?.textContent).toContain('title');
+    expect(
+      (document.querySelector('.note-title-input') as HTMLInputElement).getAttribute('aria-invalid'),
+    ).toBe('true');
   });
 
   it('limits inline inputs to the note validation caps', async () => {
@@ -243,6 +250,7 @@ describe('toolbar interactions', () => {
     input.dispatchEvent(new Event('input'));
 
     expect(document.querySelector('.note-edit-error')).toBeNull();
+    expect(input.getAttribute('aria-invalid')).toBeNull();
   });
 
   it('edits a note whose id contains selector characters', async () => {
@@ -406,6 +414,8 @@ describe('toolbar interactions', () => {
 
     const toast = document.querySelector('#undoToast') as HTMLElement;
     expect(toast.textContent).toContain('Note deleted.');
+    expect(toast.getAttribute('role')).toBe('status');
+    expect(toast.getAttribute('aria-live')).toBe('polite');
     (toast.querySelector('button') as HTMLButtonElement).click();
 
     expect(state.notes.getAll().map((n) => n.id)).toEqual(['a', 'b']);

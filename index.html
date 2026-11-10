@@ -2,38 +2,46 @@
 <html lang="en">
   <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>base64-encoded-state-in-url-test</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sticky Notes — Share a Corkboard by Link</title>
+    <meta name="description" content="A vanilla TypeScript sticky-notes corkboard that keeps every note in the URL — no account, no backend, just share the link.">
+    <meta name="theme-color" content="#6b5d4f">
+    <meta name="color-scheme" content="light">
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Sticky Notes — Share a Corkboard by Link">
+    <meta property="og:description" content="A vanilla TypeScript sticky-notes corkboard that keeps every note in the URL — no account, no backend, just share the link.">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="Sticky Notes — Share a Corkboard by Link">
+    <meta name="twitter:description" content="A vanilla TypeScript sticky-notes corkboard that keeps every note in the URL — no account, no backend, just share the link.">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/gh-fork-ribbon.min.css" />
   </head>
   <body>
     <a class="github-fork-ribbon" href="https://github.com/hiimalexjgarcia/base64-encoded-state-test" data-ribbon="Fork me on GitHub" title="Fork me on GitHub">Fork me on GitHub</a>
-    <div class="container">
-    <h1>Notes</h1>
+    <main class="container">
+      <h1>Notes</h1>
 
-    <div class="d-flex mb-3" role="toolbar" style="align-items: center; gap: 1rem; flex-wrap: wrap;">
-      <button type="button" id="addNoteBtn" class="btn btn-primary">Add Note</button>
-      <button type="button" id="copyLinkBtn" class="btn">Copy link</button>
-      <button type="button" id="clearCompletedBtn" class="btn">Clear completed</button>
-      <label style="display: flex; align-items: center; gap: 0.25rem; margin: 0;">
-        <input type="checkbox" id="showCompletedCheckbox" />
-        Show completed
-      </label>
-      <span id="notesDisplayCount" class="flex-fill text-right"></span>
-      <input
-        type="search"
-        incremental
-        aria-label="Search notes"
-        name="q"
-        placeholder="🔍"
-        id="notesInputSearch" />
-    </div>
+      <div class="d-flex mb-3" role="group" aria-label="Note controls" style="align-items: center; gap: 1rem; flex-wrap: wrap;">
+        <button type="button" id="addNoteBtn" class="btn btn-primary">Add Note</button>
+        <button type="button" id="copyLinkBtn" class="btn">Copy link</button>
+        <button type="button" id="clearCompletedBtn" class="btn">Clear completed</button>
+        <label style="display: flex; align-items: center; gap: 0.25rem; margin: 0;">
+          <input type="checkbox" id="showCompletedCheckbox" />
+          Show completed
+        </label>
+        <span id="notesDisplayCount" class="flex-fill text-right" aria-live="polite" aria-atomic="true"></span>
+        <input
+          type="search"
+          aria-label="Search notes"
+          name="q"
+          placeholder="🔍"
+          id="notesInputSearch" />
+      </div>
 
-    <div id="notes">
-    </div>
+      <div id="notes">
+      </div>
 
-    </div>
+    </main>
+    <script type="module" src="/src/index.ts"></script>
   </body>
 </html>
-<script type="module" src="/src/index.ts"></script>

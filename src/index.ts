@@ -127,6 +127,9 @@ const getUndoToast = (): HTMLElement => {
     toast = document.createElement('div');
     toast.id = 'undoToast';
     toast.className = 'undo-toast';
+    toast.setAttribute('role', 'status');
+    toast.setAttribute('aria-live', 'polite');
+    toast.setAttribute('aria-atomic', 'true');
     document.body.appendChild(toast);
   }
 
@@ -280,9 +283,13 @@ const setupSearch = (): void => {
 };
 
 const EDIT_ERROR_CLASS = 'note-edit-error';
+const EDIT_INPUTS = '.note-title-input, .note-body-input';
 
 const clearEditError = (noteEl: HTMLElement): void => {
   noteEl.querySelector(`.${EDIT_ERROR_CLASS}`)?.remove();
+  noteEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(EDIT_INPUTS).forEach((input) => {
+    input.removeAttribute('aria-invalid');
+  });
 };
 
 const showEditError = (noteEl: HTMLElement, message: string): void => {
@@ -292,6 +299,9 @@ const showEditError = (noteEl: HTMLElement, message: string): void => {
   error.setAttribute('role', 'alert');
   error.textContent = message;
   noteEl.appendChild(error);
+  noteEl.querySelectorAll<HTMLInputElement | HTMLTextAreaElement>(EDIT_INPUTS).forEach((input) => {
+    input.setAttribute('aria-invalid', 'true');
+  });
 };
 
 const startInlineEdit = (note: Note): void => {
@@ -327,6 +337,7 @@ const startInlineEdit = (note: Note): void => {
     input.className = 'note-title-input';
     input.value = note.title;
     input.maxLength = NOTE_VALIDATION.TITLE_MAX_LENGTH;
+    input.setAttribute('aria-label', 'Note title');
     input.addEventListener('keydown', handleEditKeys);
     input.addEventListener('input', () => {
       clearEditError(noteEl);
@@ -341,6 +352,7 @@ const startInlineEdit = (note: Note): void => {
     textarea.className = 'note-body-input';
     textarea.value = note.body;
     textarea.maxLength = NOTE_VALIDATION.BODY_MAX_LENGTH;
+    textarea.setAttribute('aria-label', 'Note body');
     textarea.addEventListener('keydown', handleEditKeys);
     textarea.addEventListener('input', () => {
       clearEditError(noteEl);

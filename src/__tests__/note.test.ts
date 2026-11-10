@@ -29,6 +29,7 @@ describe('NoteComponent', () => {
     expect(el.classList.contains('note-completed')).toBe(true);
     const overlay = el.querySelector('.note-completed-overlay');
     expect(overlay?.textContent).toBe('X');
+    expect(overlay?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('should add pinned class and toggle pin button state', () => {
