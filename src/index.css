@@ -93,6 +93,19 @@ textarea {
     flex: 1 1 auto;
 }
 
+.notes-toolbar {
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.notes-toolbar-label {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+}
+
 .btn {
     display: inline-block;
     padding: 0.375rem 0.75rem;
@@ -182,6 +195,31 @@ input[type="search"]::placeholder {
     z-index: 1001;
     font-size: 0.9rem;
     text-align: center;
+}
+
+.undo-toast-dismiss {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0 0.35rem;
+    border: none;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 1.15rem;
+    line-height: 1;
+}
+
+.undo-toast-dismiss:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.undo-toast-dismiss:focus-visible {
+    outline: 3px solid #8ab4ff;
+    outline-offset: 2px;
 }
 
 .undo-toast {
@@ -274,6 +312,10 @@ input[type="search"]::placeholder {
 
 .note-actions button:hover {
     opacity: 1;
+}
+
+.note-delete-icon {
+    pointer-events: none;
 }
 
 .note-pin.is-pinned {

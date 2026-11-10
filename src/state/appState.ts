@@ -5,7 +5,7 @@
 
 import { AppState as AppStateType, Note, EncodedState, IAppState } from '../types';
 import { handleError } from '../utils/errorHandler';
-import { validateNote } from '../utils/validation';
+import { normalizeNote, validateNote } from '../utils/validation';
 import { encodeState, decodeState, generateId } from '../utils/urlState';
 
 /**
@@ -17,6 +17,11 @@ const createAppState = (): IAppState => {
   let state: AppStateType = {
     notes: [],
   };
+
+  // Monotonic revision, bumped on every committed state change. The view
+  // layer uses it to cache derived data (the Fuse index) without relying on
+  // array identity, since getAll() returns a fresh clone each call.
+  let revision = 0;
 
   /**
    * Ensures state has a valid notes array
@@ -83,6 +88,7 @@ const createAppState = (): IAppState => {
       }
 
       state = newState;
+      revision += 1;
       publishStateChange(newState);
 
     } catch (error) {
@@ -105,6 +111,12 @@ const createAppState = (): IAppState => {
       get: (): AppStateType => cloneState(state),
 
       /**
+       * Gets the current monotonic state revision.
+       * @returns Revision number (bumped on every state change)
+       */
+      getRevision: (): number => revision,
+
+      /**
        * Sets state from URL-safe encoded string
        * @param encoded - URL-safe encoded state string
        */
@@ -117,15 +129,12 @@ const createAppState = (): IAppState => {
             return;
           }
 
+          // decodeState validates and normalizes every note (and drops
+          // duplicate ids), so there is no need to validate them again here.
           const decoded = decodeState(encoded);
-
-          // Ensure decoded has a notes property
           const notes = Array.isArray(decoded.notes) ? decoded.notes : [];
 
-          // Validate each note
-          const validatedNotes = notes.filter(note => validateNote(note));
-
-          setState(() => ({ ...decoded, notes: validatedNotes }));
+          setState(() => ({ ...decoded, notes }));
 
         } catch (error) {
           handleError(error, {
@@ -181,7 +190,7 @@ const createAppState = (): IAppState => {
 
         setState((currentState) => ({
           ...currentState,
-          notes: [...currentState.notes, note],
+          notes: [...currentState.notes, normalizeNote(note)],
         }));
       },
 
@@ -208,9 +217,10 @@ const createAppState = (): IAppState => {
           return;
         }
 
+        const normalized = normalizeNote(note);
         setState((currentState) => ({
           ...currentState,
-          notes: currentState.notes.map(n => n.id === note.id ? note : n),
+          notes: currentState.notes.map(n => n.id === normalized.id ? normalized : n),
         }));
       },
 
@@ -251,7 +261,9 @@ const createAppState = (): IAppState => {
       setAll: (notes: Note[]): void => {
         setState((currentState) => ({
           ...currentState,
-          notes: Array.isArray(notes) ? notes.filter(note => validateNote(note)) : [],
+          notes: Array.isArray(notes)
+            ? notes.filter(note => validateNote(note)).map(normalizeNote)
+            : [],
         }));
       },
     },

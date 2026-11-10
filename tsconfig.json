@@ -16,14 +16,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["vite/client"],
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/*"],
-      "@state/*": ["src/state/*"],
-      "@components/*": ["src/components/*"],
-      "@utils/*": ["src/utils/*"]
-    }
+    "types": ["vite/client"]
   },
   "include": ["src/**/*", "vite.config.ts"],
   "exclude": ["node_modules", "dist", "src/__tests__"]

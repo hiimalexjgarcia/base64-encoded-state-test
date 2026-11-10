@@ -33,6 +33,7 @@ export type EncodedState = string;
  * Validation limits for notes
  */
 export const NOTE_VALIDATION = {
+  ID_MAX_LENGTH: 128,
   TITLE_MAX_LENGTH: 200,
   BODY_MAX_LENGTH: 10000,
   TITLE_MIN_LENGTH: 1,
@@ -55,6 +56,7 @@ export interface IAppState {
   state: {
     get: () => AppState;
     getEncoded: () => EncodedState;
+    getRevision: () => number;
     setEncoded: (encoded: EncodedState) => void;
   };
   notes: {

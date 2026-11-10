@@ -1,7 +1,7 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "types": ["jest", "vite/client"]
+    "types": ["jest", "node", "vite/client"]
   },
   "include": ["src/**/*", "jest.setup.js"],
   "exclude": ["node_modules", "dist"]

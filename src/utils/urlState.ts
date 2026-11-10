@@ -17,8 +17,12 @@ interface CompactNote {
 }
 
 interface CompactState {
+  /** URL schema version. Links without a version are treated as v1. */
+  v: 1;
   n: CompactNote[];
 }
+
+const URL_STATE_VERSION = 1 as const;
 
 /**
  * Upper bound for an encoded hash. Browsers cap URLs well below this, so a
@@ -57,6 +61,7 @@ const fromBase64Url = (str: string): string => {
 };
 
 const compactState = (state: AppState): CompactState => ({
+  v: URL_STATE_VERSION,
   n: state.notes.map((note) => {
     const compact: CompactNote = { i: note.id, t: note.title };
     if (note.body) {
@@ -86,6 +91,7 @@ const expandState = (compact: unknown): AppState => {
   }
 
   const notes: Note[] = [];
+  const seenIds = new Set<string>();
   for (const item of data.n) {
     if (!item || typeof item !== 'object') {
       continue;
@@ -105,7 +111,10 @@ const expandState = (compact: unknown): AppState => {
     if (typeof n.k === 'string' && NOTE_COLORS.includes(n.k as NoteColor)) {
       note.color = n.k as NoteColor;
     }
-    if (validateNote(note)) {
+    // Duplicate ids would make update/remove affect several notes at once,
+    // so a shared link can only contribute one note per id.
+    if (validateNote(note) && !seenIds.has(note.id)) {
+      seenIds.add(note.id);
       notes.push(note);
     }
   }
@@ -137,11 +146,15 @@ export const decodeState = (encoded: string): AppState => {
   try {
     const json = new TextDecoder().decode(base64ToUint8(fromBase64Url(encoded)));
     const data = JSON.parse(json);
-    if (data && typeof data === 'object' && Array.isArray(data.n)) {
-      return expandState(data);
+    if (!data || typeof data !== 'object' || !Array.isArray(data.n)) {
+      return { notes: [] };
+    }
+    // Links written before the version field are implicitly v1.
+    if (data.v !== undefined && data.v !== URL_STATE_VERSION) {
+      return { notes: [] };
     }
 
-    return { notes: [] };
+    return expandState(data);
   } catch {
     return { notes: [] };
   }

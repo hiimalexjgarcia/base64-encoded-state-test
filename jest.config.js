@@ -14,10 +14,6 @@ module.exports = {
   moduleNameMapper: {
     '\\.(css|less|sass|scss)$': '<rootDir>/jestMocks/style-stub.js',
     '^(\\.{1,2}/.*)\\.js$': '$1',
-    '^@/(.*)$': '<rootDir>/src/$1',
-    '^@state/(.*)$': '<rootDir>/src/state/$1',
-    '^@components/(.*)$': '<rootDir>/src/components/$1',
-    '^@utils/(.*)$': '<rootDir>/src/utils/$1',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   collectCoverageFrom: [

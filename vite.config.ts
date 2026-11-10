@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite';
-import tsconfigPaths from 'vite-tsconfig-paths';
 
 export default defineConfig({
-  plugins: [tsconfigPaths()],
   server: {
     open: true,
   },
   build: {
     outDir: 'dist',
-    sourcemap: true,
+    // Don't publish source maps: they expose original source and inflate
+    // the deploy artifact. Debug production builds from a local build.
+    sourcemap: false,
   },
 });

@@ -1,5 +1,5 @@
 {
-  "name": "base64-encoded-state-test",
+  "name": "sticky-notes-corkboard",
   "version": "0.1.0",
   "description": "A vanilla TypeScript sticky-notes corkboard that stores all state in the URL hash.",
   "private": true,
@@ -44,8 +44,7 @@
     "jest-environment-jsdom": "^30.5.2",
     "ts-jest": "^29.4.15",
     "typescript": "^5.9.3",
-    "vite": "^7.3.8",
-    "vite-tsconfig-paths": "^6.1.1"
+    "vite": "^7.3.8"
   },
   "dependencies": {
     "fuse.js": "^7.5.0",

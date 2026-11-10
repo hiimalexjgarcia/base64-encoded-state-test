@@ -19,6 +19,7 @@ export const validateNote = (note: unknown): note is Note => {
   return (
     typeof n.id === 'string' &&
     n.id.length > 0 &&
+    n.id.length <= NOTE_VALIDATION.ID_MAX_LENGTH &&
     typeof n.title === 'string' &&
     n.title.length >= NOTE_VALIDATION.TITLE_MIN_LENGTH &&
     n.title.length <= NOTE_VALIDATION.TITLE_MAX_LENGTH &&
@@ -29,3 +30,11 @@ export const validateNote = (note: unknown): note is Note => {
   );
 };
 
+/**
+ * Ensures a note has the required fields the rest of the app relies on.
+ * Notes decoded from older links may omit `body`; store it as an empty
+ * string instead of leaking `undefined` into rendering or encoding.
+ * Callers must validate the note first.
+ */
+export const normalizeNote = (note: Note): Note =>
+  note.body === undefined ? { ...note, body: '' } : note;

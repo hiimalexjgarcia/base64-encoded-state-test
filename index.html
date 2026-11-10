@@ -10,9 +10,16 @@
     <meta property="og:type" content="website">
     <meta property="og:title" content="Sticky Notes — Share a Corkboard by Link">
     <meta property="og:description" content="A vanilla TypeScript sticky-notes corkboard that keeps every note in the URL — no account, no backend, just share the link.">
-    <meta name="twitter:card" content="summary">
+    <meta property="og:url" content="https://vigorous-wilson-ce6cfa.netlify.app/">
+    <meta property="og:image" content="https://vigorous-wilson-ce6cfa.netlify.app/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="A corkboard with colorful sticky notes">
+    <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Sticky Notes — Share a Corkboard by Link">
     <meta name="twitter:description" content="A vanilla TypeScript sticky-notes corkboard that keeps every note in the URL — no account, no backend, just share the link.">
+    <meta name="twitter:image" content="https://vigorous-wilson-ce6cfa.netlify.app/og-image.png">
+    <meta name="twitter:image:alt" content="A corkboard with colorful sticky notes">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="/gh-fork-ribbon.min.css" />
   </head>
@@ -21,11 +28,11 @@
     <main class="container">
       <h1>Notes</h1>
 
-      <div class="d-flex mb-3" role="group" aria-label="Note controls" style="align-items: center; gap: 1rem; flex-wrap: wrap;">
+      <div class="d-flex mb-3 notes-toolbar" role="group" aria-label="Note controls">
         <button type="button" id="addNoteBtn" class="btn btn-primary">Add Note</button>
         <button type="button" id="copyLinkBtn" class="btn">Copy link</button>
         <button type="button" id="clearCompletedBtn" class="btn">Clear completed</button>
-        <label style="display: flex; align-items: center; gap: 0.25rem; margin: 0;">
+        <label class="notes-toolbar-label">
           <input type="checkbox" id="showCompletedCheckbox" />
           Show completed
         </label>
@@ -38,7 +45,7 @@
           id="notesInputSearch" />
       </div>
 
-      <div id="notes">
+      <div id="notes" role="list" aria-label="Notes">
       </div>
 
     </main>

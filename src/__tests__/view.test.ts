@@ -108,6 +108,33 @@ describe('view helpers', () => {
       const notes = [makeNote({ title: 'Alpha' })];
       expect(searchNotes(notes, 'zzzznonexistent')).toEqual([]);
     });
+
+    it('should treat Fuse extended-search operators as literal text', () => {
+      const notes = [
+        makeNote({ id: '1', title: 'Alpha' }),
+        makeNote({ id: '2', title: 'Beta' }),
+      ];
+
+      // With useExtendedSearch, "!Alpha" means "not Alpha" and would
+      // return Beta. The plain search ignores the punctuation and matches
+      // Alpha like a normal query.
+      expect(searchNotes(notes, '!Alpha').map((n) => n.id)).toEqual(['1']);
+    });
+
+    it('should reuse results when the revision is unchanged', () => {
+      const notes = [
+        makeNote({ id: '1', title: 'Alpha' }),
+        makeNote({ id: '2', title: 'Beta' }),
+      ];
+
+      const first = searchNotes(notes, 'Alpha', 7);
+      const second = searchNotes(notes, 'Alpha', 7);
+      const third = searchNotes(notes, 'Beta', 8);
+
+      expect(first.map((n) => n.id)).toEqual(['1']);
+      expect(second.map((n) => n.id)).toEqual(['1']);
+      expect(third.map((n) => n.id)).toEqual(['2']);
+    });
   });
 
   describe('getVisibleNotes', () => {
@@ -187,6 +214,12 @@ describe('view helpers', () => {
       expect(formatNotesCount(0)).toBe('0 notes');
       expect(formatNotesCount(1)).toBe('1 note');
       expect(formatNotesCount(2)).toBe('2 notes');
+    });
+
+    it('should show the visible count against the total', () => {
+      expect(formatNotesCount(1, 5)).toBe('1 of 5 notes');
+      expect(formatNotesCount(2, 2)).toBe('2 notes');
+      expect(formatNotesCount(0, 1)).toBe('0 of 1 note');
     });
   });
 });

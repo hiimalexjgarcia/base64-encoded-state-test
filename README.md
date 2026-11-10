@@ -1,8 +1,10 @@
-# Base64 Encoded State Test
+# Sticky Notes Corkboard
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/671744ae-7c50-4f77-8c10-224ffadd9a1a/deploy-status)](https://app.netlify.com/projects/vigorous-wilson-ce6cfa/deploys)
 
-A vanilla TypeScript sticky note web app that persists all application state in the URL hash as base64url-encoded data. Share notes by simply sharing the URL.
+A vanilla TypeScript sticky-note corkboard that persists all application state in the URL hash as base64url-encoded data. Share notes by simply sharing the URL.
+
+![Sticky Notes corkboard](./docs/screenshot.png)
 
 ## Features
 
@@ -15,12 +17,12 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
 - **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
 - **Clear Completed** - Remove all completed notes in one action
-- **Undo** - Deleted a note by accident? An undo toast appears for 6 seconds after deletions and clear-completed, and its countdown pauses while the toast is focused or hovered
+- **Undo** - Deleted a note by accident? An undo toast appears after deletions and clear-completed. Its 6-second countdown pauses while the toast is focused or hovered, and it can be dismissed with the × button or `Esc`
 - **Empty States** - Context-aware guidance when there are no notes, no search matches, or all notes are completed
-- **Copy Share Link** - Copy the current URL (with full note state) to the clipboard
+- **Copy Share Link** - Save any open edit, then copy the current URL (with full note state) to the clipboard
 - **Delete Notes** - Remove notes with the delete button
-- **Search** - Debounced fuzzy search across note titles and bodies using Fuse.js
-- **URL State Persistence** - Entire app state is encoded in the URL hash for easy sharing and bookmarking
+- **Search** - Debounced fuzzy search across note titles and bodies using the basic Fuse.js build; the search index is cached per state revision
+- **URL State Persistence** - Entire app state is encoded in the URL hash for easy sharing and bookmarking, with a versioned schema
 - **No Backend Required** - Fully client-side application
 
 ## Tech Stack
@@ -28,7 +30,7 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Language**: TypeScript 5.9
 - **Build Tool**: Vite 7
 - **Styling**: CSS3
-- **Search**: Fuse.js
+- **Search**: Fuse.js (basic build)
 - **ID Generation**: nanoid
 - **Testing**: Jest 30 with jsdom
 
@@ -60,13 +62,13 @@ npm run test:coverage
 
 ## How It Works
 
-Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`; the parser also accepts `#...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL; if the link grows past 16k characters (or the browser refuses the history update), a visible warning banner explains that the link may not be shareable.
+Application state (all notes) is serialized, compacted with short keys (`v` schema version, `n` notes; each note uses `i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`; the parser also accepts `#...`). Links without a `v` field are treated as version 1, and duplicate note ids in a shared link are dropped. On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL while preserving the query string; if the link grows past 16k characters (or the browser refuses the history update), a visible warning banner explains that the link may not be shareable.
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 
 ## Privacy
 
-The URL state is **encoded, not encrypted**. Anyone who has a shared link can read every note in it, and URLs may be retained in browser history, chat apps, email clients, and server access logs. Don't put secrets in a note.
+The URL state is **encoded, not encrypted**. Anyone who has a shared link can read every note in it, and URLs may be retained in browser history, chat apps, email clients, and server access logs. Don't put secrets in a note. See [SECURITY.md](./SECURITY.md) for reporting and dependency-override details.
 
 ## Deployment
 
@@ -74,7 +76,7 @@ The build is fully static, so any static host works.
 
 ### Netlify
 
-The repository includes `netlify.toml` with the build command (`npm run build`), publish directory (`dist`), Node 24 (`NODE_VERSION`), and baseline security headers. Connect the repository in Netlify and deploy; no environment variables are required. Keep the Netlify UI Node version unset so it doesn't override `netlify.toml`.
+The repository includes `netlify.toml` with the build command (`npm run build`), publish directory (`dist`), Node 24 (`NODE_VERSION`), HSTS, a strict CSP with no inline styles, and cache headers (immutable assets, revalidated `index.html`). Production source maps are disabled. Connect the repository in Netlify and deploy; no environment variables are required. Keep the Netlify UI Node version unset so it doesn't override `netlify.toml`.
 
 ### Other static hosts
 
@@ -96,7 +98,7 @@ graph TD
     I --> J[Get visible notes via search + completion filter + pin sort]
     J --> L[Render each note via NoteComponent]
 
-    N[User clicks Add Note or presses N] --> N1[Commit active draft]
+    N[User clicks Add Note or presses N] --> N1[Commit active draft; clear search]
     N1 --> O[Create new note with generateId]
     O --> P[AppState.notes.add]
     P --> F
@@ -114,10 +116,11 @@ graph TD
 
     Y[User clicks Delete] --> Z[capture undo entry]
     Z --> AA[AppState.notes.remove]
-    AA --> AB[Show undo toast 6s, paused while focused or hovered]
+    AA --> AB[Show undo toast; countdown paused while focused or hovered]
     AB --> AC[User clicks Undo]
     AC --> AD[AppState.notes.setAll restores original order]
     AD --> F
+    AB --> AB1[Dismiss with button or Esc]
 
     AE[User clicks Clear completed] --> AF[capture undo entries]
     AF --> AG[AppState.notes.clearCompleted]
@@ -129,10 +132,17 @@ graph TD
     AI[User toggles Show completed] --> AI1[Commit active draft; revert toggle if invalid]
     AI1 --> I
 
-    AJ[User navigates hash] --> AK[hashchange event - end active edit]
-    AK --> C
-    AL[Hash becomes empty] --> AM[Reset to empty board]
+    AJ[User clicks Copy link] --> AJ1[Commit active draft; abort if invalid]
+    AJ1 --> AJ2[Copy current URL]
+
+    AK[User navigates hash] --> AL[hashchange event - end active edit, drop undo history]
+    AL --> C
+    AM[Hash becomes empty] --> AN[Reset to empty board]
 ```
+
+## Release notes
+
+See [CHANGELOG.md](./CHANGELOG.md). The current release is `v0.1.0`.
 
 ## License
 

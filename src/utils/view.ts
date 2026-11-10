@@ -3,13 +3,25 @@
  * and note color selection. No DOM access — fully unit-testable.
  */
 
-import Fuse from 'fuse.js';
+import Fuse from 'fuse.js/basic';
 import { Note, NOTE_COLORS, NoteColor } from '../types';
 
 export interface VisibleNotesOptions {
   query?: string;
   showCompleted?: boolean;
+  /**
+   * Current AppState revision. When provided, the Fuse index is reused for
+   * as long as the revision is unchanged. Omit it for one-off searches.
+   */
+  revision?: number;
 }
+
+interface FuseCache {
+  revision: number;
+  fuse: Fuse<Note>;
+}
+
+let fuseCache: FuseCache | null = null;
 
 /**
  * Sorts notes with pinned notes first, preserving relative order
@@ -28,17 +40,25 @@ export const filterByCompletion = (notes: Note[], showCompleted = false): Note[]
  * Fuzzy-searches notes by title and body; returns all notes for a
  * blank query.
  */
-export const searchNotes = (notes: Note[], query: string): Note[] => {
+export const searchNotes = (notes: Note[], query: string, revision?: number): Note[] => {
   const trimmed = query.trim();
 
   if (!trimmed) {
     return notes;
   }
 
-  const fuse = new Fuse(notes, {
-    useExtendedSearch: true,
-    keys: ['title', 'body'],
-  });
+  let fuse: Fuse<Note>;
+  if (revision === undefined) {
+    fuse = new Fuse(notes, { keys: ['title', 'body'] });
+  } else {
+    if (!fuseCache || fuseCache.revision !== revision) {
+      fuseCache = {
+        revision,
+        fuse: new Fuse(notes, { keys: ['title', 'body'] }),
+      };
+    }
+    fuse = fuseCache.fuse;
+  }
 
   return fuse.search(trimmed).map((r) => r.item);
 };
@@ -49,9 +69,9 @@ export const searchNotes = (notes: Note[], query: string): Note[] => {
  */
 export const getVisibleNotes = (
   notes: Note[],
-  { query = '', showCompleted = false }: VisibleNotesOptions = {},
+  { query = '', showCompleted = false, revision }: VisibleNotesOptions = {},
 ): Note[] =>
-  sortPinnedFirst(filterByCompletion(searchNotes(notes, query), showCompleted));
+  sortPinnedFirst(filterByCompletion(searchNotes(notes, query, revision), showCompleted));
 
 /**
  * Picks a random note color.
@@ -76,7 +96,11 @@ export const cycleColor = (color?: NoteColor): NoteColor => {
 };
 
 /**
- * Formats a notes count for display, e.g. "1 note", "2 notes".
+ * Formats a notes count for display, e.g. "1 note", "2 notes". When a
+ * filtered subset is on screen, the total is included, e.g. "2 of 5 notes".
  */
-export const formatNotesCount = (count: number): string =>
-  `${count} note${count !== 1 ? 's' : ''}`;
+export const formatNotesCount = (count: number, total = count): string => {
+  const noun = `note${total !== 1 ? 's' : ''}`;
+
+  return total === count ? `${count} ${noun}` : `${count} of ${total} ${noun}`;
+};

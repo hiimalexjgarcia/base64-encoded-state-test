@@ -90,6 +90,36 @@ describe('urlState', () => {
       expect(decoded.notes).toHaveLength(1);
       expect(decoded.notes[0].color).toBeUndefined();
     });
+
+    it('should drop duplicate ids, keeping the first occurrence', () => {
+      const compact = JSON.stringify({
+        n: [
+          { i: 'same', t: 'First' },
+          { i: 'same', t: 'Second' },
+          { i: 'other', t: 'Other' },
+        ],
+      });
+      const encoded = btoa(compact).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      const decoded = decodeState(encoded);
+
+      expect(decoded.notes.map((n) => n.title)).toEqual(['First', 'Other']);
+    });
+
+    it('should reject an unsupported schema version', () => {
+      const compact = JSON.stringify({ v: 2, n: [{ i: 'id-1', t: 'Future' }] });
+      const encoded = btoa(compact).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+      expect(decodeState(encoded)).toEqual({ notes: [] });
+    });
+
+    it('should encode the current schema version', () => {
+      const encoded = encodeState({ notes: [makeNote()] });
+      const base64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
+      const padded = base64 + '='.repeat((4 - base64.length % 4) % 4);
+      const json = atob(padded);
+
+      expect(JSON.parse(json).v).toBe(1);
+    });
   });
 
   describe('round-trip', () => {

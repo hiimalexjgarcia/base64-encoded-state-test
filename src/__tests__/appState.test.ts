@@ -58,6 +58,12 @@ describe('appState', () => {
       expect(notes).toHaveLength(0);
       consoleSpy.mockRestore();
     });
+
+    it('should normalize a missing body to an empty string', () => {
+      appState.notes.add({ id: 'test-id-1', title: 'Test Note' } as Note);
+
+      expect(appState.notes.getAll()[0].body).toBe('');
+    });
   });
 
   describe('notes.remove', () => {
@@ -316,6 +322,30 @@ describe('appState', () => {
       const state = appState.state.get();
       expect(state.notes).toEqual([]);
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe('state revision', () => {
+    it('should start at zero and advance on every state change', () => {
+      expect(appState.state.getRevision()).toBe(0);
+
+      appState.notes.add({ id: '1', title: 'One', body: '' });
+      expect(appState.state.getRevision()).toBe(1);
+
+      appState.notes.update({ id: '1', title: 'One edited', body: '' });
+      expect(appState.state.getRevision()).toBe(2);
+
+      appState.state.setEncoded('');
+      expect(appState.state.getRevision()).toBe(3);
+    });
+
+    it('should advance when a note is removed or cleared', () => {
+      appState.notes.add({ id: '1', title: 'Done', body: '', completed: true });
+      const afterAdd = appState.state.getRevision();
+
+      appState.notes.clearCompleted();
+
+      expect(appState.state.getRevision()).toBe(afterAdd + 1);
     });
   });
 

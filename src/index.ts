@@ -54,7 +54,9 @@ const clearUrlWarning = (): void => {
 
 const syncStateToUrl = (): void => {
   const path = document.location.pathname || '/';
-  const url = path + '#/' + AppState.state.getEncoded();
+  // Preserve query parameters (e.g. analytics or campaign tags) instead of
+  // replacing the whole URL with pathname + hash.
+  const url = path + (document.location.search || '') + '#/' + AppState.state.getEncoded();
 
   try {
     window.history.replaceState(null, '', url);
@@ -96,10 +98,13 @@ const getSearchInput = (): HTMLInputElement | null =>
 const isShowCompletedChecked = (): boolean =>
   !!(document.getElementById('showCompletedCheckbox') as HTMLInputElement | null)?.checked;
 
-const updateNotesCount = (): void => {
+const updateNotesCount = (visibleCount: number): void => {
   const countElement = document.getElementById('notesDisplayCount');
   if (countElement) {
-    countElement.textContent = formatNotesCount(AppState.notes.getAll().length);
+    countElement.textContent = formatNotesCount(
+      visibleCount,
+      AppState.notes.getAll().length,
+    );
   }
 };
 
@@ -107,6 +112,7 @@ const renderVisibleNotes = (): Note[] =>
   getVisibleNotes(AppState.notes.getAll(), {
     query: getSearchInput()?.value ?? '',
     showCompleted: isShowCompletedChecked(),
+    revision: AppState.state.getRevision(),
   });
 
 /**
@@ -123,6 +129,25 @@ const findNoteElement = (container: HTMLElement, id: string): HTMLElement | null
   }
 
   return null;
+};
+
+/**
+ * Returns focus to a note's Edit button after its editor closes, falling
+ * back to Add Note when the note is no longer on screen (for example when
+ * it was filtered out or deleted).
+ */
+const focusNoteControl = (id: string): void => {
+  const container = getNotesContainer();
+  const noteEl = container ? findNoteElement(container, id) : null;
+  const editButton = noteEl?.querySelector<HTMLButtonElement>('.note-edit');
+
+  if (editButton) {
+    editButton.focus();
+
+    return;
+  }
+
+  document.getElementById('addNoteBtn')?.focus();
 };
 
 interface UndoEntry {
@@ -168,9 +193,10 @@ const getUndoToast = (): HTMLElement => {
     toast = document.createElement('div');
     toast.id = 'undoToast';
     toast.className = 'undo-toast';
-    toast.setAttribute('role', 'status');
-    toast.setAttribute('aria-live', 'polite');
-    toast.setAttribute('aria-atomic', 'true');
+    // A live region containing an interactive control is awkward for screen
+    // readers, so the toast is a labelled region and only its text is live.
+    toast.setAttribute('role', 'region');
+    toast.setAttribute('aria-label', 'Undo notification');
     // WCAG 2.2.1: don't dismiss while the user is reading or about to undo.
     toast.addEventListener('mouseenter', () => {
       undoToastHovered = true;
@@ -191,6 +217,12 @@ const getUndoToast = (): HTMLElement => {
         resumeUndoToastTimer();
       }
     });
+    toast.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        hideUndoToast();
+      }
+    });
     document.body.appendChild(toast);
   }
 
@@ -207,6 +239,8 @@ const hideUndoToast = (): void => {
   undoToastHovered = false;
   undoToastFocused = false;
   undoToastRemaining = UNDO_TOAST_MS;
+  // Once the toast is gone there is no control left to invoke the undo.
+  undoEntry = null;
 };
 
 const undoRemoval = (): void => {
@@ -233,6 +267,9 @@ const showUndoToast = (message: string): void => {
   undoToastRemaining = UNDO_TOAST_MS;
 
   const text = document.createElement('span');
+  text.setAttribute('role', 'status');
+  text.setAttribute('aria-live', 'polite');
+  text.setAttribute('aria-atomic', 'true');
   text.textContent = message;
 
   const undoBtn = document.createElement('button');
@@ -241,8 +278,16 @@ const showUndoToast = (message: string): void => {
   undoBtn.textContent = 'Undo';
   undoBtn.addEventListener('click', undoRemoval);
 
+  const dismissBtn = document.createElement('button');
+  dismissBtn.type = 'button';
+  dismissBtn.className = 'undo-toast-dismiss';
+  dismissBtn.setAttribute('aria-label', 'Dismiss notification');
+  dismissBtn.textContent = '×';
+  dismissBtn.addEventListener('click', hideUndoToast);
+
   toast.appendChild(text);
   toast.appendChild(undoBtn);
+  toast.appendChild(dismissBtn);
 
   clearUndoToastTimer();
   undoToastDeadline = Date.now() + UNDO_TOAST_MS;
@@ -342,8 +387,9 @@ const endEdit = (): void => {
 
 function renderAllNotes({ preserveEdit = true }: RenderOptions = {}): void {
   const draft = preserveEdit ? editDraft : null;
-  renderNotes(renderVisibleNotes());
-  updateNotesCount();
+  const visibleNotes = renderVisibleNotes();
+  renderNotes(visibleNotes);
+  updateNotesCount(visibleNotes.length);
 
   if (!draft) {
     return;
@@ -436,11 +482,16 @@ const mountInlineEditor = (noteEl: HTMLElement, draft: EditDraft, restoreFocus: 
       event.preventDefault();
       endEdit();
       renderAllNotes({ preserveEdit: false });
+      focusNoteControl(draft.id);
     } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       saveInlineEdit(noteEl, draft.id);
     }
   };
+
+  // Listen on the whole card so Escape also works when focus is on the
+  // Save/Cancel buttons, not just inside the text inputs.
+  noteEl.addEventListener('keydown', handleEditKeys);
 
   // Keep the draft and caret position in sync so a re-render can rebuild
   // this editor without losing what the user has typed.
@@ -472,7 +523,6 @@ const mountInlineEditor = (noteEl: HTMLElement, draft: EditDraft, restoreFocus: 
     titleInput.value = draft.title;
     titleInput.maxLength = NOTE_VALIDATION.TITLE_MAX_LENGTH;
     titleInput.setAttribute('aria-label', 'Note title');
-    titleInput.addEventListener('keydown', handleEditKeys);
     trackDraft('title', titleInput);
     titleEl.replaceWith(titleInput);
   }
@@ -484,7 +534,6 @@ const mountInlineEditor = (noteEl: HTMLElement, draft: EditDraft, restoreFocus: 
     bodyInput.value = draft.body;
     bodyInput.maxLength = NOTE_VALIDATION.BODY_MAX_LENGTH;
     bodyInput.setAttribute('aria-label', 'Note body');
-    bodyInput.addEventListener('keydown', handleEditKeys);
     trackDraft('body', bodyInput);
     bodyEl.replaceWith(bodyInput);
   }
@@ -505,6 +554,7 @@ const mountInlineEditor = (noteEl: HTMLElement, draft: EditDraft, restoreFocus: 
     cancelBtn.onclick = (): void => {
       endEdit();
       renderAllNotes({ preserveEdit: false });
+      focusNoteControl(draft.id);
     };
     actions.appendChild(saveBtn);
     actions.appendChild(cancelBtn);
@@ -609,6 +659,7 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): boolean => {
 
   endEdit();
   AppState.notes.update(updated);
+  focusNoteControl(id);
 
   return true;
 };
@@ -617,6 +668,14 @@ const addNote = (): void => {
   // Don't replace an open editor with a fresh note before its draft is valid.
   if (commitActiveEdit() === 'invalid') {
     return;
+  }
+
+  // A search filter may not match the new note, which would leave the user
+  // with no visible editor. Clearing the query guarantees the new note can
+  // be seen and edited immediately.
+  const search = getSearchInput();
+  if (search?.value) {
+    search.value = '';
   }
 
   const note: Note = {
@@ -679,6 +738,12 @@ const setupCopyLink = (): void => {
   const btn = document.getElementById('copyLinkBtn') as HTMLButtonElement | null;
   if (!btn) {return;}
   btn.addEventListener('click', async () => {
+    // A copy action must not capture the previous saved state. Commit the
+    // open draft first; an invalid draft keeps the editor and its error.
+    if (commitActiveEdit() === 'invalid') {
+      return;
+    }
+
     const url = window.location.href;
     try {
       await navigator.clipboard.writeText(url);
@@ -725,8 +790,10 @@ const initializeState = (hash: string): void => {
 
 const handleHashChange = (): void => {
   // Incoming URL state replaces the board wholesale, so an in-progress
-  // edit no longer has a note to attach to.
+  // edit no longer has a note to attach to, and an undo entry belongs to
+  // the previous board.
   endEdit();
+  hideUndoToast();
   const hash = readHash();
   if (hash) {
     initializeState(hash);

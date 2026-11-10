@@ -26,8 +26,8 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
   button.setAttribute('aria-label', 'Delete note');
 
   const icon = document.createElement('span');
+  icon.className = 'note-delete-icon';
   icon.setAttribute('aria-hidden', 'true');
-  icon.style.pointerEvents = 'none';
   icon.textContent = '×';
 
   const text = document.createElement('span');
@@ -53,6 +53,7 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
     (note.pinned ? ' note-pinned' : '') +
     colorClass(note.color);
   el.dataset.id = note.id;
+  el.setAttribute('role', 'listitem');
 
   const actions = document.createElement('div');
   actions.className = 'note-actions';
@@ -62,7 +63,10 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
     checkbox.type = 'checkbox';
     checkbox.className = 'note-complete-checkbox';
     checkbox.checked = !!note.completed;
-    checkbox.setAttribute('aria-label', 'Mark note as completed');
+    checkbox.setAttribute(
+      'aria-label',
+      note.completed ? 'Mark note as not completed' : 'Mark note as completed',
+    );
     checkbox.addEventListener('change', onToggleComplete);
     actions.appendChild(checkbox);
   }

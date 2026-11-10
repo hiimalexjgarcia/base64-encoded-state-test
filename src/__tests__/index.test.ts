@@ -7,7 +7,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { encodeState } from '../utils/urlState';
+import { decodeState, encodeState } from '../utils/urlState';
 import { Note, NOTE_COLORS, NOTE_VALIDATION } from '../types';
 
 type AppStateInstance = typeof import('../state/appState').default;
@@ -355,6 +355,55 @@ describe('toolbar interactions', () => {
     }
   });
 
+  it('announces the visible count against the total while filtering', async () => {
+    await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'Groceries' }),
+      makeNote({ id: 'b', title: 'Homework' }),
+    ]));
+
+    jest.useFakeTimers();
+    try {
+      const search = byId<HTMLInputElement>('notesInputSearch');
+      search.value = 'Homework';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+
+      expect(byId('notesDisplayCount').textContent).toBe('1 of 2 notes');
+
+      search.value = '';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+      expect(byId('notesDisplayCount').textContent).toBe('2 notes');
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('clears an active search so a new note is visible and editable', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'Alpha' }),
+      makeNote({ id: 'b', title: 'Beta' }),
+    ]));
+
+    jest.useFakeTimers();
+    try {
+      const search = byId<HTMLInputElement>('notesInputSearch');
+      search.value = 'Alpha';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(1);
+
+      byId<HTMLButtonElement>('addNoteBtn').click();
+    } finally {
+      jest.useRealTimers();
+    }
+
+    expect(state.notes.getAll()).toHaveLength(3);
+    expect(byId<HTMLInputElement>('notesInputSearch').value).toBe('');
+    expect(document.querySelectorAll('#notes .note')).toHaveLength(3);
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+  });
+
   it('reveals completed notes when Show completed is toggled', async () => {
     await loadApp(hashFor([
       makeNote({ id: 'a', title: 'Active' }),
@@ -411,6 +460,43 @@ describe('toolbar interactions', () => {
 
     expect(state.notes.getAll()[0].title).toBe('New Note');
     expect(document.querySelector('.note-title-input')).toBeNull();
+  });
+
+  it('returns focus to the note Edit button after saving', async () => {
+    await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'First' }),
+      makeNote({ id: 'b', title: 'Second' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    (document.querySelector('.note-title-input') as HTMLInputElement).value = 'Updated';
+    (document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement).click();
+
+    expect(document.activeElement).toBe(noteEl('a')?.querySelector('.note-edit'));
+  });
+
+  it('returns focus to the note Edit button after cancelling', async () => {
+    await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'First' }),
+      makeNote({ id: 'b', title: 'Second' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    (document.querySelector('button[aria-label="Cancel edit"]') as HTMLButtonElement).click();
+
+    expect(document.activeElement).toBe(noteEl('a')?.querySelector('.note-edit'));
+  });
+
+  it('cancels with Escape when focus is on the Save button', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'First' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const saveBtn = document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement;
+    saveBtn.focus();
+    typeKey(saveBtn, 'Escape');
+
+    expect(document.querySelector('.note-title-input')).toBeNull();
+    expect(document.activeElement).toBe(noteEl('a')?.querySelector('.note-edit'));
   });
 
   it('switches inline edit when another note is edited', async () => {
@@ -558,8 +644,8 @@ describe('toolbar interactions', () => {
 
     const toast = document.querySelector('#undoToast') as HTMLElement;
     expect(toast.textContent).toContain('Note deleted.');
-    expect(toast.getAttribute('role')).toBe('status');
-    expect(toast.getAttribute('aria-live')).toBe('polite');
+    expect(toast.getAttribute('role')).toBe('region');
+    expect(toast.querySelector('[role="status"]')?.getAttribute('aria-live')).toBe('polite');
     (toast.querySelector('button') as HTMLButtonElement).click();
 
     expect(state.notes.getAll().map((n) => n.id)).toEqual(['a', 'b']);
@@ -606,6 +692,51 @@ describe('toolbar interactions', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('drops the undo history when navigating to another board', async () => {
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'Old board' })]));
+
+    (noteEl('a')?.querySelector('.note-delete') as HTMLButtonElement).click();
+    expect(document.querySelector('#undoToast')).not.toBeNull();
+
+    window.history.replaceState(
+      null,
+      '',
+      `/#/${hashFor([makeNote({ id: 'b', title: 'New board' })])}`,
+    );
+    window.dispatchEvent(new Event('hashchange'));
+
+    expect(document.querySelector('#undoToast')).toBeNull();
+    expect(state.notes.getAll().map((n) => n.id)).toEqual(['b']);
+  });
+
+  it('dismisses the undo toast with its dismiss button', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'First' }),
+      makeNote({ id: 'b', title: 'Second' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-delete') as HTMLButtonElement).click();
+    (document.querySelector('.undo-toast-dismiss') as HTMLButtonElement).click();
+
+    expect(document.querySelector('#undoToast')).toBeNull();
+    expect(state.notes.getAll().map((n) => n.id)).toEqual(['b']);
+  });
+
+  it('dismisses the undo toast on Escape', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'First' }),
+      makeNote({ id: 'b', title: 'Second' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-delete') as HTMLButtonElement).click();
+    const undoBtn = document.querySelector('#undoToast button') as HTMLButtonElement;
+    undoBtn.focus();
+    typeKey(undoBtn, 'Escape');
+
+    expect(document.querySelector('#undoToast')).toBeNull();
+    expect(state.notes.getAll().map((n) => n.id)).toEqual(['b']);
   });
 
   it('clears completed notes and can undo the clear', async () => {
@@ -655,6 +786,51 @@ describe('toolbar interactions', () => {
     } finally {
       jest.useRealTimers();
     }
+  });
+
+  it('commits an open draft before copying the link', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'Saved' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = 'Unsaved';
+    input.dispatchEvent(new Event('input'));
+
+    byId<HTMLButtonElement>('copyLinkBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const copied = writeText.mock.calls[0][0] as unknown as string;
+    const encoded = copied.replace(/^.*#\/?/, '');
+
+    expect(state.notes.getAll()[0].title).toBe('Unsaved');
+    expect(decodeState(encoded).notes[0].title).toBe('Unsaved');
+  });
+
+  it('does not copy the link while the open draft is invalid', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'Saved' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = '';
+    input.dispatchEvent(new Event('input'));
+
+    byId<HTMLButtonElement>('copyLinkBtn').click();
+    await Promise.resolve();
+
+    expect(writeText).not.toHaveBeenCalled();
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+    expect(document.querySelector('.note-edit-error')).not.toBeNull();
   });
 
   it('falls back to a prompt when clipboard access fails', async () => {
@@ -750,5 +926,16 @@ describe('URL length guard', () => {
 
     expect(state.notes.getAll()).toHaveLength(1);
     expect(document.getElementById('urlWarning')?.textContent).toMatch(/address bar/i);
+  });
+
+  it('preserves query parameters when syncing the hash', async () => {
+    const state = await loadApp('');
+    window.history.replaceState(null, '', '/?utm=campaign#');
+
+    state.notes.add(makeNote({ id: 'a', title: 'Kept' }));
+
+    expect(window.location.pathname).toBe('/');
+    expect(window.location.search).toBe('?utm=campaign');
+    expect(window.location.hash).toMatch(/^#\/.+/);
   });
 });

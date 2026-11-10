@@ -67,6 +67,21 @@ describe('NoteComponent', () => {
     expect(checkbox.checked).toBe(true);
   });
 
+  it('should label the completed checkbox by the action it performs', () => {
+    const active = NoteComponent(baseNote, createActions({ onToggleComplete: jest.fn() }));
+    const completed = NoteComponent(
+      { ...baseNote, completed: true },
+      createActions({ onToggleComplete: jest.fn() }),
+    );
+
+    expect(
+      active.querySelector('.note-complete-checkbox')?.getAttribute('aria-label'),
+    ).toBe('Mark note as completed');
+    expect(
+      completed.querySelector('.note-complete-checkbox')?.getAttribute('aria-label'),
+    ).toBe('Mark note as not completed');
+  });
+
   it('should wire pin button click', () => {
     const onPin = jest.fn();
     const el = NoteComponent(baseNote, createActions({ onPin }));
@@ -99,10 +114,20 @@ describe('NoteComponent', () => {
     expect(el.querySelector('.note-delete')).not.toBeNull();
   });
 
-  it('should set data-id and base classes', () => {
+  it('should set data-id, base classes, and listitem role', () => {
     const el = NoteComponent(baseNote, createActions());
     expect(el.dataset.id).toBe('note-1');
     expect(el.classList.contains('note')).toBe(true);
+    expect(el.getAttribute('role')).toBe('listitem');
+  });
+
+  it('should style the delete icon with a class instead of inline styles', () => {
+    const el = NoteComponent(baseNote, createActions());
+    const icon = el.querySelector('.note-delete-icon');
+
+    expect(icon).not.toBeNull();
+    expect((icon as HTMLElement).getAttribute('style')).toBeNull();
+    expect(icon?.getAttribute('aria-hidden')).toBe('true');
   });
 
   it('should not add completed overlay when not completed', () => {
