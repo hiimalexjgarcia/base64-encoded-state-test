@@ -34,7 +34,7 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 
 ## Getting Started
 
-Requires Node.js 22.12 or newer (see `.nvmrc`).
+Requires Node.js 22.12 or newer. CI and Netlify use the Node 24 LTS release pinned in `.nvmrc` (`lts/krypton`).
 
 ### Development
 
@@ -74,7 +74,7 @@ The build is fully static, so any static host works.
 
 ### Netlify
 
-The repository includes `netlify.toml` with the build command (`npm run build`), publish directory (`dist`), and baseline security headers. Connect the repository in Netlify and deploy; no environment variables are required. Netlify uses the Node version from `.nvmrc`.
+The repository includes `netlify.toml` with the build command (`npm run build`), publish directory (`dist`), Node 24 (`NODE_VERSION`), and baseline security headers. Connect the repository in Netlify and deploy; no environment variables are required. Keep the Netlify UI Node version unset so it doesn't override `netlify.toml`.
 
 ### Other static hosts
 
