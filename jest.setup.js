@@ -30,12 +30,3 @@ if (typeof document !== 'undefined') {
     </div>
   `;
 }
-
-// Suppress console errors during tests
-const originalError = console.error;
-console.error = (...args) => {
-  if (typeof args[0] === 'string' && /Failed to parse selector/.test(args[0])) {
-    return;
-  }
-  originalError(...args);
-};

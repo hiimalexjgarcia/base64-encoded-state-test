@@ -7,7 +7,7 @@ import {
   getVisibleNotes,
   randomColor,
 } from './utils/view';
-import { Note } from './types';
+import { Note, NOTE_VALIDATION } from './types';
 import './index.css';
 
 let editingId: string | null = null;
@@ -56,6 +56,22 @@ const renderVisibleNotes = (): Note[] =>
     query: getSearchInput()?.value ?? '',
     showCompleted: isShowCompletedChecked(),
   });
+
+/**
+ * Finds a rendered note by ID without interpolating the ID into a CSS
+ * selector. Note IDs come from shared links (URL state), so a crafted ID
+ * such as `a"]` must not be able to break querySelector.
+ */
+const findNoteElement = (container: HTMLElement, id: string): HTMLElement | null => {
+  const notes = container.querySelectorAll<HTMLElement>('.note');
+  for (const el of notes) {
+    if (el.dataset.id === id) {
+      return el;
+    }
+  }
+
+  return null;
+};
 
 interface UndoEntry {
   removed: Array<{ note: Note; index: number }>;
@@ -222,6 +238,21 @@ const setupSearch = (): void => {
   input.addEventListener('search', onSearch, false);
 };
 
+const EDIT_ERROR_CLASS = 'note-edit-error';
+
+const clearEditError = (noteEl: HTMLElement): void => {
+  noteEl.querySelector(`.${EDIT_ERROR_CLASS}`)?.remove();
+};
+
+const showEditError = (noteEl: HTMLElement, message: string): void => {
+  clearEditError(noteEl);
+  const error = document.createElement('p');
+  error.className = EDIT_ERROR_CLASS;
+  error.setAttribute('role', 'alert');
+  error.textContent = message;
+  noteEl.appendChild(error);
+};
+
 const startInlineEdit = (note: Note): void => {
   if (editingId) {
     renderAllNotes();
@@ -230,7 +261,7 @@ const startInlineEdit = (note: Note): void => {
   const container = getNotesContainer();
   if (!container) {return;}
 
-  const noteEl = container.querySelector<HTMLElement>(`.note[data-id="${note.id}"]`);
+  const noteEl = findNoteElement(container, note.id);
   if (!noteEl) {return;}
 
   editingId = note.id;
@@ -254,7 +285,11 @@ const startInlineEdit = (note: Note): void => {
     const input = document.createElement('input');
     input.className = 'note-title-input';
     input.value = note.title;
+    input.maxLength = NOTE_VALIDATION.TITLE_MAX_LENGTH;
     input.addEventListener('keydown', handleEditKeys);
+    input.addEventListener('input', () => {
+      clearEditError(noteEl);
+    });
     titleEl.replaceWith(input);
     input.focus();
     input.select();
@@ -264,7 +299,11 @@ const startInlineEdit = (note: Note): void => {
     const textarea = document.createElement('textarea');
     textarea.className = 'note-body-input';
     textarea.value = note.body;
+    textarea.maxLength = NOTE_VALIDATION.BODY_MAX_LENGTH;
     textarea.addEventListener('keydown', handleEditKeys);
+    textarea.addEventListener('input', () => {
+      clearEditError(noteEl);
+    });
     bodyEl.replaceWith(textarea);
   }
 
@@ -296,20 +335,34 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
   const body = bodyInput?.value.trim() || '';
 
   if (!title) {
-    renderAllNotes();
+    showEditError(noteEl, 'A note needs a title.');
+    titleInput?.focus();
 
     return;
   }
 
   const existing = AppState.notes.getAll().find((n) => n.id === id);
-  AppState.notes.update({
+  const updated: Note = {
     id,
     title,
     body,
     completed: existing?.completed,
     pinned: existing?.pinned,
     color: existing?.color,
-  });
+  };
+
+  if (!validateNote(updated)) {
+    showEditError(
+      noteEl,
+      `Title must be 1–${NOTE_VALIDATION.TITLE_MAX_LENGTH} characters and ` +
+      `body up to ${NOTE_VALIDATION.BODY_MAX_LENGTH}.`,
+    );
+    titleInput?.focus();
+
+    return;
+  }
+
+  AppState.notes.update(updated);
 };
 
 const addNote = (): void => {
@@ -395,30 +448,40 @@ const setupClearCompleted = (): void => {
   });
 };
 
-const initializeState = (): void => {
+const initializeState = (hash: string): void => {
+  if (!hash) {
+    return;
+  }
+
   try {
-    const hash = window.location.hash.substring(2);
-    if (hash) {
-      AppState.state.setEncoded(hash);
-    }
+    AppState.state.setEncoded(hash);
   } catch (e) {
     // eslint-disable-next-line no-console
     console.error('Error initializing state:', e);
-    AppState.state.setEncoded(AppState.state.getEncoded());
+    AppState.state.setEncoded('');
+  }
+};
+
+const handleHashChange = (): void => {
+  const hash = window.location.hash.substring(2);
+  if (hash) {
+    initializeState(hash);
+  } else {
+    // Clearing the hash drops the shared state instead of keeping the
+    // previous board around under a URL that claims to be empty.
+    AppState.state.setEncoded('');
   }
 };
 
 const initializeApp = (): void => {
-  initializeState();
+  initializeState(window.location.hash.substring(2));
   setupSearch();
   setupAddButton();
   setupCopyLink();
   setupClearCompleted();
   setupShowCompleted();
   setupKeyboardShortcuts();
-  window.addEventListener('hashchange', () => {
-    initializeState();
-  }, false);
+  window.addEventListener('hashchange', handleHashChange, false);
   renderAllNotes();
 };
 

@@ -28,7 +28,7 @@ jobs:
         run: npx --no-install tsc --noEmit
 
       - name: Test
-        run: NODE_OPTIONS=--experimental-vm-modules npx --no-install jest --maxWorkers=1
+        run: npm test -- --maxWorkers=1
 
       - name: Build
         run: npm run build

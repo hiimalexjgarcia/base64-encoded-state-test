@@ -8,7 +8,7 @@
 
 import { jest } from '@jest/globals';
 import { encodeState } from '../utils/urlState';
-import { Note, NOTE_COLORS } from '../types';
+import { Note, NOTE_COLORS, NOTE_VALIDATION } from '../types';
 
 type AppStateInstance = typeof import('../state/appState').default;
 
@@ -114,6 +114,17 @@ describe('app bootstrap', () => {
     expect(noteEl('z')?.querySelector('.note-title')?.textContent).toBe('Note Z');
   });
 
+  it('resets state when the hash is cleared', async () => {
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'Shared' })]));
+    expect(state.notes.getAll()).toHaveLength(1);
+
+    window.history.replaceState(null, '', '/#');
+    window.dispatchEvent(new Event('hashchange'));
+
+    expect(state.notes.getAll()).toEqual([]);
+    expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes yet');
+  });
+
   it('boots on DOMContentLoaded when the document is still loading', async () => {
     jest.resetModules();
     document.body.innerHTML = TOOLBAR_HTML;
@@ -184,14 +195,71 @@ describe('toolbar interactions', () => {
     expect(note.color).toBe('blue');
   });
 
-  it('refuses to save an empty title', async () => {
+  it('shows an error and keeps editing when the title is empty', async () => {
     const state = await loadApp('');
     byId<HTMLButtonElement>('addNoteBtn').click();
     (document.querySelector('.note-title-input') as HTMLInputElement).value = '   ';
     (document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement).click();
 
     expect(state.notes.getAll()[0].title).toBe('New Note');
-    expect(document.querySelector('.note-title-input')).toBeNull();
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+    expect(document.querySelector('.note-edit-error')?.textContent).toContain('title');
+  });
+
+  it('limits inline inputs to the note validation caps', async () => {
+    await loadApp('');
+    byId<HTMLButtonElement>('addNoteBtn').click();
+
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    const bodyInput = document.querySelector('.note-body-input') as HTMLTextAreaElement;
+
+    expect(titleInput.maxLength).toBe(NOTE_VALIDATION.TITLE_MAX_LENGTH);
+    expect(bodyInput.maxLength).toBe(NOTE_VALIDATION.BODY_MAX_LENGTH);
+  });
+
+  it('reports an over-limit edit instead of silently dropping it', async () => {
+    const state = await loadApp('');
+    byId<HTMLButtonElement>('addNoteBtn').click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = 'x'.repeat(NOTE_VALIDATION.TITLE_MAX_LENGTH + 1);
+    (document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement).click();
+
+    expect(state.notes.getAll()[0].title).toBe('New Note');
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+    expect(document.querySelector('.note-edit-error')?.textContent).toContain(
+      String(NOTE_VALIDATION.TITLE_MAX_LENGTH),
+    );
+  });
+
+  it('clears the save error when the user resumes typing', async () => {
+    await loadApp('');
+    byId<HTMLButtonElement>('addNoteBtn').click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = '';
+    (document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement).click();
+    expect(document.querySelector('.note-edit-error')).not.toBeNull();
+
+    input.value = 'Fixed';
+    input.dispatchEvent(new Event('input'));
+
+    expect(document.querySelector('.note-edit-error')).toBeNull();
+  });
+
+  it('edits a note whose id contains selector characters', async () => {
+    const weirdId = 'a"]';
+    const state = await loadApp(hashFor([makeNote({ id: weirdId, title: 'Crafted' })]));
+    const rendered = document.querySelector('#notes .note') as HTMLElement;
+
+    expect(rendered.dataset.id).toBe(weirdId);
+    (rendered.querySelector('.note-edit') as HTMLButtonElement).click();
+
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    expect(input.value).toBe('Crafted');
+
+    input.value = 'Fixed';
+    (document.querySelector('button[aria-label="Save note"]') as HTMLButtonElement).click();
+
+    expect(state.notes.getAll()[0].title).toBe('Fixed');
   });
 
   it('cancels an edit on Escape', async () => {
