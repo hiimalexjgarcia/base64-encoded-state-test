@@ -26,13 +26,15 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 ## Tech Stack
 
 - **Language**: TypeScript 5.9
-- **Build Tool**: Vite 6
+- **Build Tool**: Vite 7
 - **Styling**: CSS3
 - **Search**: Fuse.js
 - **ID Generation**: nanoid
 - **Testing**: Jest 30 with jsdom
 
 ## Getting Started
+
+Requires Node.js 22.12 or newer (see `.nvmrc`).
 
 ### Development
 

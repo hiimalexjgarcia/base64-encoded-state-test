@@ -10,6 +10,14 @@ updates:
         dependency-type: production
       development-dependencies:
         dependency-type: development
+    ignore:
+      # TypeScript 7 is not yet supported by ts-jest (<7) or typescript-eslint (<6.1).
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # Vite 8's Rolldown native binary requires CPU features (AVX2) that not
+      # every development machine has; revisit when the toolchain supports it.
+      - dependency-name: vite
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: github-actions
     directory: /
     schedule:
