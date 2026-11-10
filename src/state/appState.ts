@@ -16,7 +16,7 @@ import { encodeState, decodeState, generateId } from '../utils/urlState';
 const createAppState = (): IAppState => {
   // Initial state
   let state: AppStateType = {
-    notes: []
+    notes: [],
   };
 
   /**
@@ -27,7 +27,7 @@ const createAppState = (): IAppState => {
   const normalizeState = (s: AppStateType): AppStateType => {
     return {
       ...s,
-      notes: Array.isArray(s.notes) ? s.notes : []
+      notes: Array.isArray(s.notes) ? s.notes : [],
     };
   };
 
@@ -77,8 +77,9 @@ const createAppState = (): IAppState => {
       if (!newState || typeof newState !== 'object') {
         handleError(new Error('Invalid state: must be an object'), {
           module: 'state',
-          method: 'setState'
+          method: 'setState',
         });
+
         return;
       }
 
@@ -88,7 +89,7 @@ const createAppState = (): IAppState => {
     } catch (error) {
       handleError(error, {
         module: 'state',
-        method: 'setState'
+        method: 'setState',
       });
     }
   };
@@ -113,14 +114,15 @@ const createAppState = (): IAppState => {
           if (!encoded || typeof encoded !== 'string') {
             // Reset to default state
             setState(() => ({ notes: [] }));
+
             return;
           }
 
           const decoded = decodeState(encoded);
-          
+
           // Ensure decoded has a notes property
           const notes = Array.isArray(decoded.notes) ? decoded.notes : [];
-          
+
           // Validate each note
           const validatedNotes = notes.filter(note => validateNote(note));
 
@@ -129,7 +131,7 @@ const createAppState = (): IAppState => {
         } catch (error) {
           handleError(error, {
             module: 'state',
-            method: 'setEncoded'
+            method: 'setEncoded',
           });
           // Reset to default state on error
           setState(() => ({ notes: [] }));
@@ -146,11 +148,12 @@ const createAppState = (): IAppState => {
         } catch (error) {
           handleError(error, {
             module: 'state',
-            method: 'getEncoded'
+            method: 'getEncoded',
           });
+
           return encodeState({ notes: [] });
         }
-      }
+      },
     },
 
     /**
@@ -171,14 +174,15 @@ const createAppState = (): IAppState => {
         if (!validateNote(note)) {
           handleError(new Error('Invalid note: validation failed'), {
             module: 'state',
-            method: 'notes.add'
+            method: 'notes.add',
           });
+
           return;
         }
 
         setState((currentState) => ({
           ...currentState,
-          notes: [...currentState.notes, note]
+          notes: [...currentState.notes, note],
         }));
       },
 
@@ -190,22 +194,24 @@ const createAppState = (): IAppState => {
         if (!note || !note.id) {
           handleError(new Error('Invalid note: missing id'), {
             module: 'state',
-            method: 'notes.update'
+            method: 'notes.update',
           });
+
           return;
         }
 
         if (!validateNote(note)) {
           handleError(new Error('Invalid note: validation failed'), {
             module: 'state',
-            method: 'notes.update'
+            method: 'notes.update',
           });
+
           return;
         }
 
         setState((currentState) => ({
           ...currentState,
-          notes: currentState.notes.map(n => n.id === note.id ? note : n)
+          notes: currentState.notes.map(n => n.id === note.id ? note : n),
         }));
       },
 
@@ -217,14 +223,15 @@ const createAppState = (): IAppState => {
         if (!note || !note.id) {
           handleError(new Error('Invalid note: missing id'), {
             module: 'state',
-            method: 'notes.remove'
+            method: 'notes.remove',
           });
+
           return;
         }
 
         setState((currentState) => ({
           ...currentState,
-          notes: currentState.notes.filter(n => n.id !== note.id)
+          notes: currentState.notes.filter(n => n.id !== note.id),
         }));
       },
 
@@ -234,7 +241,7 @@ const createAppState = (): IAppState => {
       clearCompleted: (): void => {
         setState((currentState) => ({
           ...currentState,
-          notes: currentState.notes.filter(n => !n.completed)
+          notes: currentState.notes.filter(n => !n.completed),
         }));
       },
 
@@ -251,18 +258,20 @@ const createAppState = (): IAppState => {
         try {
           const fuse = new Fuse(state.notes, {
             useExtendedSearch: true,
-            keys: ['title', 'body']
+            keys: ['title', 'body'],
           });
+
           return fuse.search(query) as Array<{ item: Note; score: number }>;
         } catch (error) {
           handleError(error, {
             module: 'state',
             method: 'notes.search',
-            silent: true
+            silent: true,
           });
+
           return [];
         }
-      }
+      },
     },
 
     /**
@@ -286,6 +295,7 @@ const createAppState = (): IAppState => {
         }
         const id = `${topic}-${nextSubscriberId++}`;
         subscribers[topic].set(id, callback as Callback);
+
         return id;
       },
 
@@ -301,8 +311,8 @@ const createAppState = (): IAppState => {
             delete subscribers[topic];
           }
         }
-      }
-    }
+      },
+    },
   };
 };
 

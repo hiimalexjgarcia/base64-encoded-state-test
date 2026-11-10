@@ -67,7 +67,7 @@ export interface IAppState {
   };
   generateId: () => string;
   pubsub: {
-    subscribe: (topic: string, callback: (...args: any[]) => void) => string;
+    subscribe: (topic: string, callback: (...args: unknown[]) => void) => string;
     unsubscribe: (token: string) => void;
   };
 }

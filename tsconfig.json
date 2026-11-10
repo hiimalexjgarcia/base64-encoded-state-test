@@ -16,7 +16,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "allowSyntheticDefaultImports": true,
-    "types": ["jest"],
+    "types": ["jest", "vite/client"],
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],

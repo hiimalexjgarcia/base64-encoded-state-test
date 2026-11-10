@@ -12,9 +12,11 @@ import { ErrorContext } from '../types';
 export const handleError = (error: unknown, context: ErrorContext = {}): void => {
   const { module = 'app', method = 'unknown', silent = false } = context;
 
+  // eslint-disable-next-line no-console
   console.error(`[${module}.${method}]`, error);
 
-  if ((import.meta as any).env?.DEV && !silent && error instanceof Error) {
+  if (import.meta.env?.DEV && !silent && error instanceof Error) {
+    // eslint-disable-next-line no-console
     console.debug(`[${module}.${method}] details:`, error.stack);
   }
 };

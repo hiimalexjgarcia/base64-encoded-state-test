@@ -1,5 +1,4 @@
 import { Note as NoteType, NoteColor } from '../types';
-import { sanitizeString } from '../utils/validation';
 
 export interface NoteActions {
   onDelete: () => void;
@@ -16,6 +15,7 @@ const createButton = (className: string, label: string, text: string, onClick: (
   button.setAttribute('aria-label', label);
   button.textContent = text;
   button.addEventListener('click', onClick);
+
   return button;
 };
 
@@ -37,10 +37,11 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
   button.appendChild(icon);
   button.appendChild(text);
   button.addEventListener('click', onClick);
+
   return button;
 };
 
-const colorClass = (color?: NoteColor): string => (color ? ` note-color-${color}` : '');
+const colorClass = (color?: NoteColor): string => color ? ` note-color-${color}` : '';
 
 const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
   const { onDelete, onEdit, onToggleComplete, onPin, onCycleColor } = actionsConfig;
@@ -72,8 +73,8 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
         'note-pin' + (note.pinned ? ' is-pinned' : ''),
         note.pinned ? 'Unpin note' : 'Pin note to top',
         '📌',
-        onPin
-      )
+        onPin,
+      ),
     );
   }
 
@@ -86,13 +87,15 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
   }
   actions.appendChild(createDeleteButton(onDelete));
 
+  // textContent is XSS-safe and does not parse HTML entities, so raw values
+  // are assigned directly (sanitizing here would double-escape on screen).
   const title = document.createElement('div');
   title.className = 'note-title';
-  title.textContent = sanitizeString(note.title);
+  title.textContent = note.title;
 
   const body = document.createElement('div');
   body.className = 'note-body';
-  body.textContent = sanitizeString(note.body);
+  body.textContent = note.body;
 
   el.appendChild(actions);
   el.appendChild(title);

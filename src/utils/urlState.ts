@@ -7,11 +7,25 @@ import { nanoid } from 'nanoid';
 import { AppState, Note, NOTE_COLORS, NoteColor } from '../types';
 import { validateNote } from './validation';
 
+interface CompactNote {
+  i: string;
+  t: string;
+  b?: string;
+  c?: number;
+  p?: number;
+  k?: NoteColor;
+}
+
+interface CompactState {
+  n: CompactNote[];
+}
+
 const uint8ToBase64 = (uint8: Uint8Array): string => {
   let binary = '';
   for (let i = 0; i < uint8.length; i++) {
     binary += String.fromCharCode(uint8[i]);
   }
+
   return btoa(binary);
 };
 
@@ -21,6 +35,7 @@ const base64ToUint8 = (base64: string): Uint8Array => {
   for (let i = 0; i < binary.length; i++) {
     bytes[i] = binary.charCodeAt(i);
   }
+
   return bytes;
 };
 
@@ -28,41 +43,66 @@ const toBase64Url = (str: string): string =>
   str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
 const fromBase64Url = (str: string): string => {
-  const pad = (4 - (str.length % 4)) % 4;
+  const pad = (4 - str.length % 4) % 4;
   const padded = pad ? str + '='.repeat(pad) : str;
+
   return padded.replace(/-/g, '+').replace(/_/g, '/');
 };
 
-const compactState = (state: AppState) => ({
+const compactState = (state: AppState): CompactState => ({
   n: state.notes.map((note) => {
-    const compact: Record<string, any> = { i: note.id, t: note.title };
-    if (note.body) compact.b = note.body;
-    if (note.completed) compact.c = 1;
-    if (note.pinned) compact.p = 1;
-    if (note.color) compact.k = note.color;
+    const compact: CompactNote = { i: note.id, t: note.title };
+    if (note.body) {
+      compact.b = note.body;
+    }
+    if (note.completed) {
+      compact.c = 1;
+    }
+    if (note.pinned) {
+      compact.p = 1;
+    }
+    if (note.color) {
+      compact.k = note.color;
+    }
+
     return compact;
   }),
 });
 
 const expandState = (compact: unknown): AppState => {
-  if (!compact || typeof compact !== 'object') return { notes: [] };
+  if (!compact || typeof compact !== 'object') {
+    return { notes: [] };
+  }
   const data = compact as { n?: unknown };
-  if (!Array.isArray(data.n)) return { notes: [] };
+  if (!Array.isArray(data.n)) {
+    return { notes: [] };
+  }
 
   const notes: Note[] = [];
   for (const item of data.n) {
-    if (!item || typeof item !== 'object') continue;
-    const n = item as Record<string, any>;
+    if (!item || typeof item !== 'object') {
+      continue;
+    }
+    const n = item as Record<string, unknown>;
     const note: Note = {
-      id: n.i || '',
-      title: n.t || '',
-      body: n.b || '',
+      id: typeof n.i === 'string' ? n.i : '',
+      title: typeof n.t === 'string' ? n.t : '',
+      body: typeof n.b === 'string' ? n.b : '',
     };
-    if (n.c) note.completed = true;
-    if (n.p) note.pinned = true;
-    if (typeof n.k === 'string' && NOTE_COLORS.includes(n.k as NoteColor)) note.color = n.k as NoteColor;
-    if (validateNote(note)) notes.push(note);
+    if (n.c) {
+      note.completed = true;
+    }
+    if (n.p) {
+      note.pinned = true;
+    }
+    if (typeof n.k === 'string' && NOTE_COLORS.includes(n.k as NoteColor)) {
+      note.color = n.k as NoteColor;
+    }
+    if (validateNote(note)) {
+      notes.push(note);
+    }
   }
+
   return { notes };
 };
 
@@ -71,9 +111,10 @@ const expandState = (compact: unknown): AppState => {
  */
 export const encodeState = (state: AppState): string => {
   try {
-    if (!state?.notes?.length) return '';
+    if (!state?.notes?.length) {return '';}
     const json = JSON.stringify(compactState(state));
     const bytes = new TextEncoder().encode(json);
+
     return toBase64Url(uint8ToBase64(bytes));
   } catch {
     return '';
@@ -84,13 +125,14 @@ export const encodeState = (state: AppState): string => {
  * Decodes a URL-safe string to application state
  */
 export const decodeState = (encoded: string): AppState => {
-  if (!encoded || typeof encoded !== 'string') return { notes: [] };
+  if (!encoded || typeof encoded !== 'string') {return { notes: [] };}
   try {
     const json = new TextDecoder().decode(base64ToUint8(fromBase64Url(encoded)));
     const data = JSON.parse(json);
     if (data && typeof data === 'object' && Array.isArray(data.n)) {
       return expandState(data);
     }
+
     return { notes: [] };
   } catch {
     return { notes: [] };
