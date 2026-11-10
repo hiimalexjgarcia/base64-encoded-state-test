@@ -1,5 +1,3 @@
-/* eslint-env browser */
-
 import AppState from './state/appState';
 import NoteComponent from './components/note';
 import { validateNote } from './utils/validation';
@@ -40,6 +38,7 @@ const filterByCompletion = (notes: Note[], showCompleted = isShowCompletedChecke
 
 const getSearchResults = (query: string): Note[] => {
   const trimmed = query.trim();
+
   return trimmed ? AppState.notes.search(trimmed).map((r) => r.item) : AppState.notes.getAll();
 };
 
@@ -50,9 +49,10 @@ const randomColor = (): NoteColor =>
   NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
 
 const cycleColor = (color?: NoteColor): NoteColor => {
-  if (!color) return NOTE_COLORS[0];
+  if (!color) {return NOTE_COLORS[0];}
   const idx = NOTE_COLORS.indexOf(color);
-  if (idx < 0) return NOTE_COLORS[0];
+  if (idx < 0) {return NOTE_COLORS[0];}
+
   return NOTE_COLORS[(idx + 1) % NOTE_COLORS.length];
 };
 
@@ -70,7 +70,7 @@ function createNoteElement(note: Note): HTMLElement {
 
 function renderNotes(notes: Note[]): void {
   const container = getNotesContainer();
-  if (!container) return;
+  if (!container) {return;}
   container.innerHTML = '';
   notes.forEach((note) => {
     if (validateNote(note)) {
@@ -92,7 +92,7 @@ AppState.pubsub.subscribe('appStateChanged', () => {
 
 const setupSearch = (): void => {
   const input = getSearchInput();
-  if (!input) return;
+  if (!input) {return;}
 
   const onSearch = (): void => {
     renderAllNotes();
@@ -108,10 +108,10 @@ const startInlineEdit = (note: Note): void => {
   }
 
   const container = getNotesContainer();
-  if (!container) return;
+  if (!container) {return;}
 
   const noteEl = container.querySelector<HTMLElement>(`.note[data-id="${note.id}"]`);
-  if (!noteEl) return;
+  if (!noteEl) {return;}
 
   editingId = note.id;
   noteEl.classList.add('note-editing');
@@ -142,12 +142,16 @@ const startInlineEdit = (note: Note): void => {
     saveBtn.type = 'button';
     saveBtn.textContent = '✓';
     saveBtn.setAttribute('aria-label', 'Save note');
-    saveBtn.onclick = () => saveInlineEdit(noteEl, note.id);
+    saveBtn.onclick = (): void => {
+      saveInlineEdit(noteEl, note.id);
+    };
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.textContent = '✕';
     cancelBtn.setAttribute('aria-label', 'Cancel edit');
-    cancelBtn.onclick = () => renderAllNotes();
+    cancelBtn.onclick = (): void => {
+      renderAllNotes();
+    };
     actions.appendChild(saveBtn);
     actions.appendChild(cancelBtn);
   }
@@ -161,6 +165,7 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
 
   if (!title) {
     renderAllNotes();
+
     return;
   }
 
@@ -177,7 +182,7 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
 
 const setupAddButton = (): void => {
   const addBtn = document.getElementById('addNoteBtn');
-  if (!addBtn) return;
+  if (!addBtn) {return;}
 
   addBtn.addEventListener('click', () => {
     const note: Note = {
@@ -193,7 +198,7 @@ const setupAddButton = (): void => {
 
 const setupShowCompleted = (): void => {
   const checkbox = document.getElementById('showCompletedCheckbox');
-  if (!checkbox) return;
+  if (!checkbox) {return;}
   checkbox.addEventListener('change', () => {
     renderAllNotes();
   });
@@ -201,7 +206,7 @@ const setupShowCompleted = (): void => {
 
 const setupCopyLink = (): void => {
   const btn = document.getElementById('copyLinkBtn') as HTMLButtonElement | null;
-  if (!btn) return;
+  if (!btn) {return;}
   btn.addEventListener('click', async () => {
     const url = window.location.href;
     try {
@@ -212,6 +217,7 @@ const setupCopyLink = (): void => {
         btn.textContent = original;
       }, 1500);
     } catch {
+      // eslint-disable-next-line no-alert
       window.prompt('Copy this link:', url);
     }
   });
@@ -219,10 +225,11 @@ const setupCopyLink = (): void => {
 
 const setupClearCompleted = (): void => {
   const btn = document.getElementById('clearCompletedBtn');
-  if (!btn) return;
+  if (!btn) {return;}
   btn.addEventListener('click', () => {
     const completedCount = AppState.notes.getAll().filter((n) => n.completed).length;
-    if (completedCount === 0) return;
+    if (completedCount === 0) {return;}
+    // eslint-disable-next-line no-alert
     if (window.confirm(`Clear ${completedCount} completed note${completedCount !== 1 ? 's' : ''}?`)) {
       AppState.notes.clearCompleted();
     }
@@ -236,6 +243,7 @@ const initializeState = (): void => {
       AppState.state.setEncoded(hash);
     }
   } catch (e) {
+    // eslint-disable-next-line no-console
     console.error('Error initializing state:', e);
     AppState.state.setEncoded(AppState.state.getEncoded());
   }
