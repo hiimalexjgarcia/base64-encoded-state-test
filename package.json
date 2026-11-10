@@ -1,7 +1,7 @@
 {
   "name": "base64-encoded-state-test",
   "version": "0.0.1",
-  "description": "",
+  "description": "A vanilla TypeScript sticky-notes corkboard that stores all state in the URL hash.",
   "private": true,
   "scripts": {
     "dev": "vite",
@@ -17,9 +17,19 @@
     "type": "git",
     "url": "git+https://github.com/hiimalexjgarcia/base64-encoded-state-test.git"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "sticky-notes",
+    "typescript",
+    "url-state",
+    "base64url",
+    "vite",
+    "no-backend"
+  ],
+  "author": "hiimalexjgarcia",
   "license": "ISC",
+  "engines": {
+    "node": ">=20.19.0"
+  },
   "bugs": {
     "url": "https://github.com/hiimalexjgarcia/base64-encoded-state-test/issues"
   },

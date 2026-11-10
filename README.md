@@ -62,6 +62,22 @@ Application state (all notes) is serialized, compacted with short keys (`i` id, 
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 
+## Privacy
+
+The URL state is **encoded, not encrypted**. Anyone who has a shared link can read every note in it, and URLs may be retained in browser history, chat apps, email clients, and server access logs. Don't put secrets in a note.
+
+## Deployment
+
+The build is fully static, so any static host works.
+
+### Netlify
+
+The repository includes `netlify.toml` with the build command (`npm run build`), publish directory (`dist`), and baseline security headers. Connect the repository in Netlify and deploy; no environment variables are required. Netlify uses the Node version from `.nvmrc`.
+
+### Other static hosts
+
+Run `npm run build` and upload the contents of `dist/`. Because every route lives in the URL hash, no server rewrite rules are needed.
+
 ## Application Flow
 
 ```mermaid
@@ -112,3 +128,7 @@ graph TD
     AK --> C
     AL[Hash becomes empty] --> AM[Reset to empty board]
 ```
+
+## License
+
+ISC — see [LICENSE](./LICENSE).
