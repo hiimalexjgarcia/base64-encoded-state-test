@@ -521,20 +521,43 @@ describe('keyboard shortcuts', () => {
 });
 
 describe('URL length guard', () => {
-  it('warns once when the share link exceeds the threshold', async () => {
-    const bigBody = 'x'.repeat(8000);
-    const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+  const bigBody = 'x'.repeat(8000);
 
+  it('shows one visible warning when the share link exceeds the threshold', async () => {
     const state = await loadApp(hashFor([
       makeNote({ id: 'a', title: 'Big 1', body: bigBody }),
       makeNote({ id: 'b', title: 'Big 2', body: bigBody }),
     ]));
 
-    expect(warn).toHaveBeenCalledTimes(1);
-    expect(String(warn.mock.calls[0][0])).toMatch(/may be truncated/i);
+    expect(document.getElementById('urlWarning')?.textContent).toMatch(/may be truncated/i);
 
-    // Further edits must not spam the console.
+    // Further edits reuse the same banner instead of piling up warnings.
     state.notes.add(makeNote({ id: 'c', title: 'Small' }));
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(document.querySelectorAll('#urlWarning')).toHaveLength(1);
+    expect(document.getElementById('urlWarning')?.textContent).toMatch(/may be truncated/i);
+  });
+
+  it('clears the warning once the share link is short enough', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'Big', body: bigBody }),
+      makeNote({ id: 'b', title: 'Also big', body: bigBody }),
+    ]));
+    expect(document.getElementById('urlWarning')).not.toBeNull();
+
+    state.notes.setAll([makeNote({ id: 'a', title: 'Small' })]);
+
+    expect(document.getElementById('urlWarning')).toBeNull();
+  });
+
+  it('warns visibly when the address bar cannot be updated', async () => {
+    const state = await loadApp('');
+    jest.spyOn(window.history, 'replaceState').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    state.notes.add(makeNote({ id: 'a', title: 'Still here' }));
+
+    expect(state.notes.getAll()).toHaveLength(1);
+    expect(document.getElementById('urlWarning')?.textContent).toMatch(/address bar/i);
   });
 });

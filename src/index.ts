@@ -16,22 +16,63 @@ let editingId: string | null = null;
 // (Safari ~80k), and long links break in chat apps and email clients.
 const URL_LENGTH_WARN_THRESHOLD = 16_000;
 
-let urlLengthWarned = false;
+const URL_WARNING_ID = 'urlWarning';
+
+type UrlWarningKind = 'length' | 'replace' | null;
+let urlWarningKind: UrlWarningKind = null;
+
+const showUrlWarning = (message: string): void => {
+  let warning = document.getElementById(URL_WARNING_ID);
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = URL_WARNING_ID;
+    warning.className = 'url-warning';
+    warning.setAttribute('role', 'status');
+    warning.setAttribute('aria-live', 'polite');
+    document.body.appendChild(warning);
+  }
+  if (warning.textContent !== message) {
+    warning.textContent = message;
+  }
+};
+
+const clearUrlWarning = (): void => {
+  document.getElementById(URL_WARNING_ID)?.remove();
+  urlWarningKind = null;
+};
 
 const syncStateToUrl = (): void => {
   const path = document.location.pathname || '/';
   const url = path + '#/' + AppState.state.getEncoded();
-  window.history.replaceState(null, '', url);
 
-  if (url.length > URL_LENGTH_WARN_THRESHOLD && !urlLengthWarned) {
-    urlLengthWarned = true;
-    // eslint-disable-next-line no-console
-    console.warn(
-      `Share link is ${url.length} characters — it may be truncated by ` +
-      'browsers, chat apps, or email clients. Consider removing some notes.',
-    );
-  } else if (url.length <= URL_LENGTH_WARN_THRESHOLD) {
-    urlLengthWarned = false;
+  try {
+    window.history.replaceState(null, '', url);
+  } catch {
+    // Some browsers reject very long or otherwise invalid history URLs.
+    // Keep the notes in memory and tell the user the link is stale.
+    if (urlWarningKind !== 'replace') {
+      urlWarningKind = 'replace';
+      showUrlWarning(
+        'The address bar could not be updated, so this link may be out of ' +
+        'date. Your notes are still in this tab — remove some notes to ' +
+        'create a shareable link.',
+      );
+    }
+
+    return;
+  }
+
+  if (url.length > URL_LENGTH_WARN_THRESHOLD) {
+    if (urlWarningKind !== 'length') {
+      urlWarningKind = 'length';
+      showUrlWarning(
+        `This share link is ${url.length.toLocaleString()} characters and may ` +
+        'be truncated by browsers, chat apps, or email clients. Remove some ' +
+        'notes to shorten it.',
+      );
+    }
+  } else if (urlWarningKind) {
+    clearUrlWarning();
   }
 };
 

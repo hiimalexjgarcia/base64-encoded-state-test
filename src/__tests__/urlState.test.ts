@@ -1,4 +1,4 @@
-import { encodeState, decodeState, generateId } from '../utils/urlState';
+import { encodeState, decodeState, generateId, MAX_ENCODED_LENGTH } from '../utils/urlState';
 import { Note } from '../types';
 
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
@@ -76,6 +76,11 @@ describe('urlState', () => {
       const decoded = decodeState(encoded);
       expect(decoded.notes).toHaveLength(1);
       expect(decoded.notes[0].id).toBe('good-id');
+    });
+
+    it('should reject oversized encoded input without parsing it', () => {
+      const oversized = 'a'.repeat(MAX_ENCODED_LENGTH + 1);
+      expect(decodeState(oversized)).toEqual({ notes: [] });
     });
 
     it('should ignore unknown color values', () => {

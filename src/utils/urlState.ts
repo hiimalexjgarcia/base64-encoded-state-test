@@ -20,6 +20,13 @@ interface CompactState {
   n: CompactNote[];
 }
 
+/**
+ * Upper bound for an encoded hash. Browsers cap URLs well below this, so a
+ * decoded value longer than this is not a legitimate share link and is
+ * discarded before any base64/JSON work happens.
+ */
+export const MAX_ENCODED_LENGTH = 100_000;
+
 const uint8ToBase64 = (uint8: Uint8Array): string => {
   let binary = '';
   for (let i = 0; i < uint8.length; i++) {
@@ -126,6 +133,7 @@ export const encodeState = (state: AppState): string => {
  */
 export const decodeState = (encoded: string): AppState => {
   if (!encoded || typeof encoded !== 'string') {return { notes: [] };}
+  if (encoded.length > MAX_ENCODED_LENGTH) {return { notes: [] };}
   try {
     const json = new TextDecoder().decode(base64ToUint8(fromBase64Url(encoded)));
     const data = JSON.parse(json);
