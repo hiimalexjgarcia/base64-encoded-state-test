@@ -1,7 +1,13 @@
 import AppState from './state/appState';
 import NoteComponent from './components/note';
 import { validateNote } from './utils/validation';
-import { Note, NOTE_COLORS, NoteColor } from './types';
+import {
+  cycleColor,
+  formatNotesCount,
+  getVisibleNotes,
+  randomColor,
+} from './utils/view';
+import { Note } from './types';
 import './index.css';
 
 let editingId: string | null = null;
@@ -20,9 +26,6 @@ const getSearchInput = (): HTMLInputElement | null =>
 const isShowCompletedChecked = (): boolean =>
   !!(document.getElementById('showCompletedCheckbox') as HTMLInputElement | null)?.checked;
 
-const formatNotesCount = (count: number): string =>
-  `${count} note${count !== 1 ? 's' : ''}`;
-
 const updateNotesCount = (): void => {
   const countElement = document.getElementById('notesDisplayCount');
   if (countElement) {
@@ -30,31 +33,11 @@ const updateNotesCount = (): void => {
   }
 };
 
-const sortPinnedFirst = (notes: Note[]): Note[] =>
-  [...notes].sort((a, b) => Number(!!b.pinned) - Number(!!a.pinned));
-
-const filterByCompletion = (notes: Note[], showCompleted = isShowCompletedChecked()): Note[] =>
-  showCompleted ? notes : notes.filter((n) => !n.completed);
-
-const getSearchResults = (query: string): Note[] => {
-  const trimmed = query.trim();
-
-  return trimmed ? AppState.notes.search(trimmed).map((r) => r.item) : AppState.notes.getAll();
-};
-
-const getVisibleNotes = (query = getSearchInput()?.value ?? ''): Note[] =>
-  sortPinnedFirst(filterByCompletion(getSearchResults(query)));
-
-const randomColor = (): NoteColor =>
-  NOTE_COLORS[Math.floor(Math.random() * NOTE_COLORS.length)];
-
-const cycleColor = (color?: NoteColor): NoteColor => {
-  if (!color) {return NOTE_COLORS[0];}
-  const idx = NOTE_COLORS.indexOf(color);
-  if (idx < 0) {return NOTE_COLORS[0];}
-
-  return NOTE_COLORS[(idx + 1) % NOTE_COLORS.length];
-};
+const renderVisibleNotes = (): Note[] =>
+  getVisibleNotes(AppState.notes.getAll(), {
+    query: getSearchInput()?.value ?? '',
+    showCompleted: isShowCompletedChecked(),
+  });
 
 function createNoteElement(note: Note): HTMLElement {
   return NoteComponent(note, {
@@ -81,7 +64,7 @@ function renderNotes(notes: Note[]): void {
 
 function renderAllNotes(): void {
   editingId = null;
-  renderNotes(getVisibleNotes());
+  renderNotes(renderVisibleNotes());
 }
 
 AppState.pubsub.subscribe('appStateChanged', () => {

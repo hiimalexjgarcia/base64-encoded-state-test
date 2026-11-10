@@ -252,11 +252,11 @@ const createAppState = (): IAppState => {
        */
       search: (query: string): Array<{ item: Note; score: number }> => {
         if (!query || typeof query !== 'string' || query.trim().length === 0) {
-          return state.notes.map(note => ({ item: note, score: 0 }));
+          return cloneState(state.notes).map(note => ({ item: note, score: 0 }));
         }
 
         try {
-          const fuse = new Fuse(state.notes, {
+          const fuse = new Fuse(cloneState(state.notes), {
             useExtendedSearch: true,
             keys: ['title', 'body'],
           });

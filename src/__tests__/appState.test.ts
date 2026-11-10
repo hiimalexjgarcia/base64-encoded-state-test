@@ -108,6 +108,136 @@ describe('appState', () => {
     });
   });
 
+  describe('notes.update', () => {
+    it('should update an existing note', () => {
+      const note: Note = { id: 'test-id-1', title: 'Old Title', body: 'Old Body' };
+      appState.notes.add(note);
+
+      appState.notes.update({ ...note, title: 'New Title', body: 'New Body' });
+
+      const notes = appState.notes.getAll();
+      expect(notes).toHaveLength(1);
+      expect(notes[0].title).toBe('New Title');
+      expect(notes[0].body).toBe('New Body');
+    });
+
+    it('should preserve fields not part of the update object', () => {
+      const note: Note = { id: 'test-id-1', title: 'Title', body: 'Body', pinned: true, color: 'blue' };
+      appState.notes.add(note);
+
+      appState.notes.update({ id: 'test-id-1', title: 'Edited', body: 'Body' });
+
+      const notes = appState.notes.getAll();
+      expect(notes[0].pinned).toBeUndefined();
+      expect(notes[0].color).toBeUndefined();
+    });
+
+    it('should not update a note with a missing id', () => {
+      const note: Note = { id: 'test-id-1', title: 'Title', body: 'Body' };
+      appState.notes.add(note);
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      appState.notes.update({ id: '', title: 'X', body: '' } as unknown as Note);
+
+      expect(appState.notes.getAll()[0].title).toBe('Title');
+      consoleSpy.mockRestore();
+    });
+
+    it('should not update an invalid note', () => {
+      const note: Note = { id: 'test-id-1', title: 'Title', body: 'Body' };
+      appState.notes.add(note);
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      appState.notes.update({ id: 'test-id-1', title: '', body: 'Body' } as unknown as Note);
+
+      expect(appState.notes.getAll()[0].title).toBe('Title');
+      consoleSpy.mockRestore();
+    });
+
+    it('should publish appStateChanged on update', () => {
+      const handler = jest.fn();
+      appState.pubsub.subscribe('appStateChanged', handler);
+
+      appState.notes.update({ id: 'x', title: 'T', body: 'B' });
+
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('notes.clearCompleted', () => {
+    it('should remove only completed notes', () => {
+      appState.notes.add({ id: '1', title: 'Active', body: '' });
+      appState.notes.add({ id: '2', title: 'Done', body: '', completed: true });
+      appState.notes.add({ id: '3', title: 'Also done', body: '', completed: true });
+
+      appState.notes.clearCompleted();
+
+      const notes = appState.notes.getAll();
+      expect(notes).toHaveLength(1);
+      expect(notes[0].id).toBe('1');
+    });
+
+    it('should be a no-op with no completed notes', () => {
+      appState.notes.add({ id: '1', title: 'Active', body: '' });
+
+      appState.notes.clearCompleted();
+
+      expect(appState.notes.getAll()).toHaveLength(1);
+    });
+
+    it('should publish appStateChanged', () => {
+      const handler = jest.fn();
+      appState.pubsub.subscribe('appStateChanged', handler);
+      appState.notes.add({ id: '1', title: 'Done', body: '', completed: true });
+
+      handler.mockClear();
+      appState.notes.clearCompleted();
+
+      expect(handler).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('pubsub', () => {
+    it('should deliver events to multiple subscribers', () => {
+      const first = jest.fn();
+      const second = jest.fn();
+      appState.pubsub.subscribe('appStateChanged', first);
+      appState.pubsub.subscribe('appStateChanged', second);
+
+      appState.notes.add({ id: '1', title: 'T', body: '' });
+
+      expect(first).toHaveBeenCalledTimes(1);
+      expect(second).toHaveBeenCalledTimes(1);
+    });
+
+    it('should stop delivery after unsubscribe', () => {
+      const handler = jest.fn();
+      const token = appState.pubsub.subscribe('appStateChanged', handler);
+      appState.pubsub.unsubscribe(token);
+
+      appState.notes.add({ id: '1', title: 'T', body: '' });
+
+      expect(handler).not.toHaveBeenCalled();
+    });
+
+    it('should not affect other subscribers when one unsubscribes', () => {
+      const staying = jest.fn();
+      const leaving = jest.fn();
+      const leavingToken = appState.pubsub.subscribe('appStateChanged', leaving);
+      appState.pubsub.subscribe('appStateChanged', staying);
+      appState.pubsub.unsubscribe(leavingToken);
+
+      appState.notes.add({ id: '1', title: 'T', body: '' });
+
+      expect(leaving).not.toHaveBeenCalled();
+      expect(staying).toHaveBeenCalledTimes(1);
+    });
+
+    it('should ignore unknown unsubscribe tokens', () => {
+      expect(() => appState.pubsub.unsubscribe('unknown-topic-999')).not.toThrow();
+    });
+  });
+
   describe('notes.search', () => {
     beforeEach(() => {
       appState.notes.add({ id: 'note-1', title: 'Hello World', body: 'This is a test' });
@@ -140,6 +270,22 @@ describe('appState', () => {
     it('should return empty array for non-matching query', () => {
       const results = appState.notes.search('NonExistent');
       expect(results).toHaveLength(0);
+    });
+
+    it('should return cloned items, not live state references', () => {
+      const results = appState.notes.search('');
+      const sentinel = 'mutated-outside';
+
+      expect(results).toHaveLength(3);
+      results[0].item.title = sentinel;
+      expect(appState.notes.getAll()[0].title).not.toBe(sentinel);
+    });
+
+    it('should keep live state intact when mutating returned search items', () => {
+      const results = appState.notes.search('Hello');
+      results[0].item.body = 'tampered';
+
+      expect(appState.notes.getAll()[0].body).toBe('This is a test');
     });
   });
 
