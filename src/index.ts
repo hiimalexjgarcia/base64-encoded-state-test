@@ -77,7 +77,11 @@ const getUndoToast = (): HTMLElement => {
 };
 
 const hideUndoToast = (): void => {
-  document.querySelector<HTMLElement>('#undoToast')?.remove();
+  const toast = document.querySelector<HTMLElement>('#undoToast');
+  if (toast?.contains(document.activeElement)) {
+    document.getElementById('addNoteBtn')?.focus();
+  }
+  toast?.remove();
   if (undoToastTimer !== null) {
     window.clearTimeout(undoToastTimer);
     undoToastTimer = null;
@@ -114,6 +118,7 @@ const showUndoToast = (message: string): void => {
 
   toast.appendChild(text);
   toast.appendChild(undoBtn);
+  undoBtn.focus();
 
   if (undoToastTimer !== null) {
     window.clearTimeout(undoToastTimer);
