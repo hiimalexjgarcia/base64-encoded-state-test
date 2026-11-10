@@ -9,11 +9,14 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Corkboard UI** - Notes displayed as colorful sticky cards on a corkboard background
 - **Add Notes** - Click "Add Note" to create a new note and edit inline
 - **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time)
+- **Keyboard Shortcuts** - `N` new note, `/` focus search, `Esc` cancel edit, `Ctrl/Cmd+Enter` save edit
 - **Pin to Top** - Pin notes to keep them prioritized at the top of the board
 - **Note Colors** - Cycle a note through a small sticky-note color palette
 - **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
 - **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
 - **Clear Completed** - Remove all completed notes in one action
+- **Undo** - Deleted a note by accident? An undo toast appears for 6 seconds after deletions and clear-completed
+- **Empty States** - Context-aware guidance when there are no notes, no search matches, or all notes are completed
 - **Copy Share Link** - Copy the current URL (with full note state) to the clipboard
 - **Delete Notes** - Remove notes with the delete button
 - **Search** - Fuzzy search across note titles and bodies using Fuse.js
@@ -69,32 +72,42 @@ graph TD
     D --> E[decodeState parses compact JSON]
     E --> F[AppState updates internal state]
     F --> G[PubSub publishes appStateChanged]
-    G --> H[Sync URL hash via syncStateToUrl]
+    G --> H[Sync URL hash via syncStateToUrl + length check]
     G --> I[renderAllNotes called]
     G --> M[Update notes count]
     I --> J[Get visible notes via search + completion filter + pin sort]
     J --> L[Render each note via NoteComponent]
 
-    N[User clicks Add Note] --> O[Create new note with generateId]
+    N[User clicks Add Note or presses N] --> O[Create new note with generateId]
     O --> P[AppState.notes.add]
     P --> F
 
     Q[User clicks Edit on note] --> R[startInlineEdit]
     R --> S[Replace title/body with inputs]
-    S --> T[User saves]
+    S --> T[User saves - button or Ctrl/Cmd+Enter]
     T --> U[AppState.notes.update]
     U --> F
+    S --> V[User cancels - button or Esc]
+    V --> I
 
-    V[User toggles complete/pin on note] --> W[AppState.notes.update]
-    W --> F
+    W[User toggles complete/pin/color on note] --> X[AppState.notes.update]
+    X --> F
 
-    X[User clicks Delete] --> Y[AppState.notes.remove]
-    Y --> F
+    Y[User clicks Delete] --> Z[capture undo entry]
+    Z --> AA[AppState.notes.remove]
+    AA --> AB[Show undo toast 6s]
+    AB --> AC[User clicks Undo]
+    AC --> AD[AppState.notes.setAll restores original order]
+    AD --> F
 
-    Z[User types in search] --> I
+    AE[User clicks Clear completed] --> AF[confirm + capture undo entries]
+    AF --> AG[AppState.notes.clearCompleted]
+    AG --> AB
 
-    AB[User toggles Show completed] --> I
+    AH[User types in search] --> I
 
-    AC[User navigates hash] --> AD[hashchange event]
-    AD --> C
+    AI[User toggles Show completed] --> I
+
+    AJ[User navigates hash] --> AK[hashchange event]
+    AK --> C
 ```
