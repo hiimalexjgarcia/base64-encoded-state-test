@@ -197,6 +197,40 @@ describe('appState', () => {
     });
   });
 
+  describe('notes.setAll', () => {
+    it('should replace the entire notes array', () => {
+      appState.notes.add({ id: '1', title: 'Old', body: '' });
+
+      appState.notes.setAll([
+        { id: 'a', title: 'New A', body: '' },
+        { id: 'b', title: 'New B', body: '' },
+      ]);
+
+      const notes = appState.notes.getAll();
+      expect(notes.map((n) => n.id)).toEqual(['a', 'b']);
+    });
+
+    it('should drop invalid notes', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      appState.notes.setAll([
+        { id: 'a', title: 'Valid', body: '' },
+        { id: '', title: 'No id', body: '' } as unknown as Note,
+      ]);
+
+      expect(appState.notes.getAll()).toHaveLength(1);
+      consoleSpy.mockRestore();
+    });
+
+    it('should fall back to empty array for non-array input', () => {
+      appState.notes.add({ id: '1', title: 'Old', body: '' });
+
+      appState.notes.setAll(null as unknown as Note[]);
+
+      expect(appState.notes.getAll()).toEqual([]);
+    });
+  });
+
   describe('pubsub', () => {
     it('should deliver events to multiple subscribers', () => {
       const first = jest.fn();

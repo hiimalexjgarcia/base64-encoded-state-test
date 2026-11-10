@@ -12,9 +12,27 @@ import './index.css';
 
 let editingId: string | null = null;
 
+// Shareable-link warning threshold in characters. Browsers cap URLs
+// (Safari ~80k), and long links break in chat apps and email clients.
+const URL_LENGTH_WARN_THRESHOLD = 16_000;
+
+let urlLengthWarned = false;
+
 const syncStateToUrl = (): void => {
   const path = document.location.pathname || '/';
-  window.history.replaceState(null, '', path + '#/' + AppState.state.getEncoded());
+  const url = path + '#/' + AppState.state.getEncoded();
+  window.history.replaceState(null, '', url);
+
+  if (url.length > URL_LENGTH_WARN_THRESHOLD && !urlLengthWarned) {
+    urlLengthWarned = true;
+    // eslint-disable-next-line no-console
+    console.warn(
+      `Share link is ${url.length} characters — it may be truncated by ` +
+      'browsers, chat apps, or email clients. Consider removing some notes.',
+    );
+  } else if (url.length <= URL_LENGTH_WARN_THRESHOLD) {
+    urlLengthWarned = false;
+  }
 };
 
 const getNotesContainer = (): HTMLElement | null =>
@@ -39,9 +57,101 @@ const renderVisibleNotes = (): Note[] =>
     showCompleted: isShowCompletedChecked(),
   });
 
+interface UndoEntry {
+  removed: Array<{ note: Note; index: number }>;
+}
+
+let undoEntry: UndoEntry | null = null;
+let undoToastTimer: number | null = null;
+
+const getUndoToast = (): HTMLElement => {
+  let toast = document.querySelector<HTMLElement>('#undoToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'undoToast';
+    toast.className = 'undo-toast';
+    document.body.appendChild(toast);
+  }
+
+  return toast;
+};
+
+const hideUndoToast = (): void => {
+  document.querySelector<HTMLElement>('#undoToast')?.remove();
+  if (undoToastTimer !== null) {
+    window.clearTimeout(undoToastTimer);
+    undoToastTimer = null;
+  }
+};
+
+const undoRemoval = (): void => {
+  if (!undoEntry) {
+    return;
+  }
+
+  const current = AppState.notes.getAll();
+  const ordered = [...undoEntry.removed].sort((a, b) => a.index - b.index);
+  for (const { note, index } of ordered) {
+    current.splice(Math.min(index, current.length), 0, note);
+  }
+  undoEntry = null;
+  hideUndoToast();
+  AppState.notes.setAll(current);
+};
+
+const showUndoToast = (message: string): void => {
+  const toast = getUndoToast();
+  toast.innerHTML = '';
+
+  const text = document.createElement('span');
+  text.textContent = message;
+
+  const undoBtn = document.createElement('button');
+  undoBtn.type = 'button';
+  undoBtn.className = 'btn btn-primary';
+  undoBtn.textContent = 'Undo';
+  undoBtn.addEventListener('click', undoRemoval);
+
+  toast.appendChild(text);
+  toast.appendChild(undoBtn);
+
+  if (undoToastTimer !== null) {
+    window.clearTimeout(undoToastTimer);
+  }
+  undoToastTimer = window.setTimeout(hideUndoToast, 6000);
+};
+
+const captureUndo = (notes: Note[]): void => {
+  const all = AppState.notes.getAll();
+  undoEntry = {
+    removed: notes
+      .map((note) => ({ note, index: all.findIndex((n) => n.id === note.id) }))
+      .filter((entry) => entry.index >= 0),
+  };
+};
+
+const deleteNote = (note: Note): void => {
+  captureUndo([note]);
+  AppState.notes.remove(note);
+  showUndoToast('Note deleted.');
+};
+
+const clearCompletedNotes = (): void => {
+  const completed = AppState.notes.getAll().filter((n) => n.completed);
+  if (completed.length === 0) {
+    return;
+  }
+  captureUndo(completed);
+  AppState.notes.clearCompleted();
+  showUndoToast(
+    `${formatNotesCount(completed.length)} cleared.`,
+  );
+};
+
+
 function createNoteElement(note: Note): HTMLElement {
   return NoteComponent(note, {
-    onDelete: () => AppState.notes.remove(note),
+    onDelete: () => deleteNote(note),
     onEdit: () => startInlineEdit(note),
     onToggleComplete: () => AppState.notes.update({ ...note, completed: !note.completed }),
     onPin: () => AppState.notes.update({ ...note, pinned: !note.pinned }),
@@ -275,7 +385,7 @@ const setupClearCompleted = (): void => {
     if (completedCount === 0) {return;}
     // eslint-disable-next-line no-alert
     if (window.confirm(`Clear ${completedCount} completed note${completedCount !== 1 ? 's' : ''}?`)) {
-      AppState.notes.clearCompleted();
+      clearCompletedNotes();
     }
   });
 };

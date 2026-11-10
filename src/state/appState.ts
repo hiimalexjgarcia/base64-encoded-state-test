@@ -246,6 +246,17 @@ const createAppState = (): IAppState => {
       },
 
       /**
+       * Replaces the entire notes array (used for undo restores)
+       * @param notes - Notes to set; invalid entries are dropped
+       */
+      setAll: (notes: Note[]): void => {
+        setState((currentState) => ({
+          ...currentState,
+          notes: Array.isArray(notes) ? notes.filter(note => validateNote(note)) : [],
+        }));
+      },
+
+      /**
        * Searches notes using Fuse.js
        * @param query - Search query
        * @returns Search results
