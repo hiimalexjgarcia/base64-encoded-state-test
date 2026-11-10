@@ -10,7 +10,18 @@ import {
 import { Note, NOTE_VALIDATION } from './types';
 import './index.css';
 
-let editingId: string | null = null;
+interface EditDraft {
+  id: string;
+  title: string;
+  body: string;
+  focusField: 'title' | 'body';
+  selectionStart: number | null;
+  selectionEnd: number | null;
+}
+
+// The active inline editor. Kept as a draft so a background re-render can
+// rebuild the board without discarding unsaved text.
+let editDraft: EditDraft | null = null;
 
 // Shareable-link warning threshold in characters. Browsers cap URLs
 // (Safari ~80k), and long links break in chat apps and email clients.
@@ -118,8 +129,38 @@ interface UndoEntry {
   removed: Array<{ note: Note; index: number }>;
 }
 
+const UNDO_TOAST_MS = 6000;
+
 let undoEntry: UndoEntry | null = null;
 let undoToastTimer: number | null = null;
+let undoToastDeadline = 0;
+let undoToastRemaining = UNDO_TOAST_MS;
+let undoToastHovered = false;
+let undoToastFocused = false;
+
+const clearUndoToastTimer = (): void => {
+  if (undoToastTimer !== null) {
+    window.clearTimeout(undoToastTimer);
+    undoToastTimer = null;
+  }
+};
+
+const pauseUndoToastTimer = (): void => {
+  if (undoToastTimer === null) {
+    return;
+  }
+  clearUndoToastTimer();
+  undoToastRemaining = Math.max(0, undoToastDeadline - Date.now());
+};
+
+const resumeUndoToastTimer = (): void => {
+  if (undoToastHovered || undoToastFocused) {
+    return;
+  }
+  clearUndoToastTimer();
+  undoToastDeadline = Date.now() + undoToastRemaining;
+  undoToastTimer = window.setTimeout(hideUndoToast, undoToastRemaining);
+};
 
 const getUndoToast = (): HTMLElement => {
   let toast = document.querySelector<HTMLElement>('#undoToast');
@@ -130,6 +171,26 @@ const getUndoToast = (): HTMLElement => {
     toast.setAttribute('role', 'status');
     toast.setAttribute('aria-live', 'polite');
     toast.setAttribute('aria-atomic', 'true');
+    // WCAG 2.2.1: don't dismiss while the user is reading or about to undo.
+    toast.addEventListener('mouseenter', () => {
+      undoToastHovered = true;
+      pauseUndoToastTimer();
+    });
+    toast.addEventListener('mouseleave', () => {
+      undoToastHovered = false;
+      resumeUndoToastTimer();
+    });
+    toast.addEventListener('focusin', () => {
+      undoToastFocused = true;
+      pauseUndoToastTimer();
+    });
+    toast.addEventListener('focusout', (event) => {
+      const next = event.relatedTarget as Node | null;
+      if (!next || !toast?.contains(next)) {
+        undoToastFocused = false;
+        resumeUndoToastTimer();
+      }
+    });
     document.body.appendChild(toast);
   }
 
@@ -142,10 +203,10 @@ const hideUndoToast = (): void => {
     document.getElementById('addNoteBtn')?.focus();
   }
   toast?.remove();
-  if (undoToastTimer !== null) {
-    window.clearTimeout(undoToastTimer);
-    undoToastTimer = null;
-  }
+  clearUndoToastTimer();
+  undoToastHovered = false;
+  undoToastFocused = false;
+  undoToastRemaining = UNDO_TOAST_MS;
 };
 
 const undoRemoval = (): void => {
@@ -167,6 +228,10 @@ const showUndoToast = (message: string): void => {
   const toast = getUndoToast();
   toast.innerHTML = '';
 
+  undoToastHovered = false;
+  undoToastFocused = false;
+  undoToastRemaining = UNDO_TOAST_MS;
+
   const text = document.createElement('span');
   text.textContent = message;
 
@@ -178,12 +243,15 @@ const showUndoToast = (message: string): void => {
 
   toast.appendChild(text);
   toast.appendChild(undoBtn);
-  undoBtn.focus();
 
-  if (undoToastTimer !== null) {
-    window.clearTimeout(undoToastTimer);
-  }
-  undoToastTimer = window.setTimeout(hideUndoToast, 6000);
+  clearUndoToastTimer();
+  undoToastDeadline = Date.now() + UNDO_TOAST_MS;
+  undoToastTimer = window.setTimeout(hideUndoToast, UNDO_TOAST_MS);
+
+  // The button receives focus for keyboard users, which pauses the timer
+  // until they move on (the focusin listener also covers later refocuses).
+  undoBtn.focus();
+  pauseUndoToastTimer();
 };
 
 const captureUndo = (notes: Note[]): void => {
@@ -202,6 +270,10 @@ const deleteNote = (note: Note): void => {
 };
 
 const clearCompletedNotes = (): void => {
+  if (commitActiveEdit() === 'invalid') {
+    return;
+  }
+
   const completed = AppState.notes.getAll().filter((n) => n.completed);
   if (completed.length === 0) {
     return;
@@ -259,10 +331,35 @@ function renderNotes(notes: Note[]): void {
   });
 }
 
-function renderAllNotes(): void {
-  editingId = null;
+interface RenderOptions {
+  /** Re-open the active editor after rebuilding the board. */
+  preserveEdit?: boolean;
+}
+
+const endEdit = (): void => {
+  editDraft = null;
+};
+
+function renderAllNotes({ preserveEdit = true }: RenderOptions = {}): void {
+  const draft = preserveEdit ? editDraft : null;
   renderNotes(renderVisibleNotes());
   updateNotesCount();
+
+  if (!draft) {
+    return;
+  }
+
+  const container = getNotesContainer();
+  const noteEl = container ? findNoteElement(container, draft.id) : null;
+  if (!noteEl) {
+    // The edited note is gone (filtered out, deleted, or replaced by a
+    // different URL state), so there is nothing left to edit.
+    endEdit();
+
+    return;
+  }
+
+  mountInlineEditor(noteEl, draft, true);
 }
 
 AppState.pubsub.subscribe('appStateChanged', () => {
@@ -290,8 +387,18 @@ const setupSearch = (): void => {
     }, SEARCH_DEBOUNCE_MS);
   };
 
-  input.addEventListener('input', scheduleRender, false);
-  input.addEventListener('search', scheduleRender, false);
+  const onSearchChange = (): void => {
+    // Commit an open editor before filtering so typing in the search box
+    // cannot silently throw away an in-progress edit. Invalid drafts keep
+    // the editor (and its error) on screen instead.
+    if (commitActiveEdit() === 'invalid') {
+      return;
+    }
+    scheduleRender();
+  };
+
+  input.addEventListener('input', onSearchChange, false);
+  input.addEventListener('search', onSearchChange, false);
 };
 
 const EDIT_ERROR_CLASS = 'note-edit-error';
@@ -316,18 +423,8 @@ const showEditError = (noteEl: HTMLElement, message: string): void => {
   });
 };
 
-const startInlineEdit = (note: Note): void => {
-  if (editingId) {
-    renderAllNotes();
-  }
-
-  const container = getNotesContainer();
-  if (!container) {return;}
-
-  const noteEl = findNoteElement(container, note.id);
-  if (!noteEl) {return;}
-
-  editingId = note.id;
+const mountInlineEditor = (noteEl: HTMLElement, draft: EditDraft, restoreFocus: boolean): void => {
+  editDraft = draft;
   noteEl.classList.add('note-editing');
 
   const titleEl = noteEl.querySelector<HTMLElement>('.note-title');
@@ -337,39 +434,59 @@ const startInlineEdit = (note: Note): void => {
   const handleEditKeys = (event: KeyboardEvent): void => {
     if (event.key === 'Escape') {
       event.preventDefault();
-      renderAllNotes();
+      endEdit();
+      renderAllNotes({ preserveEdit: false });
     } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
       event.preventDefault();
-      saveInlineEdit(noteEl, note.id);
+      saveInlineEdit(noteEl, draft.id);
     }
   };
 
-  if (titleEl) {
-    const input = document.createElement('input');
-    input.className = 'note-title-input';
-    input.value = note.title;
-    input.maxLength = NOTE_VALIDATION.TITLE_MAX_LENGTH;
-    input.setAttribute('aria-label', 'Note title');
-    input.addEventListener('keydown', handleEditKeys);
+  // Keep the draft and caret position in sync so a re-render can rebuild
+  // this editor without losing what the user has typed.
+  const trackDraft = (
+    field: 'title' | 'body',
+    input: HTMLInputElement | HTMLTextAreaElement,
+  ): void => {
+    const sync = (): void => {
+      if (editDraft?.id !== draft.id) {return;}
+      draft[field] = input.value;
+      draft.focusField = field;
+      draft.selectionStart = input.selectionStart;
+      draft.selectionEnd = input.selectionEnd;
+    };
+
     input.addEventListener('input', () => {
       clearEditError(noteEl);
+      sync();
     });
-    titleEl.replaceWith(input);
-    input.focus();
-    input.select();
+    input.addEventListener('focus', sync);
+    input.addEventListener('click', sync);
+    input.addEventListener('keyup', sync);
+  };
+
+  let titleInput: HTMLInputElement | null = null;
+  if (titleEl) {
+    titleInput = document.createElement('input');
+    titleInput.className = 'note-title-input';
+    titleInput.value = draft.title;
+    titleInput.maxLength = NOTE_VALIDATION.TITLE_MAX_LENGTH;
+    titleInput.setAttribute('aria-label', 'Note title');
+    titleInput.addEventListener('keydown', handleEditKeys);
+    trackDraft('title', titleInput);
+    titleEl.replaceWith(titleInput);
   }
 
+  let bodyInput: HTMLTextAreaElement | null = null;
   if (bodyEl) {
-    const textarea = document.createElement('textarea');
-    textarea.className = 'note-body-input';
-    textarea.value = note.body;
-    textarea.maxLength = NOTE_VALIDATION.BODY_MAX_LENGTH;
-    textarea.setAttribute('aria-label', 'Note body');
-    textarea.addEventListener('keydown', handleEditKeys);
-    textarea.addEventListener('input', () => {
-      clearEditError(noteEl);
-    });
-    bodyEl.replaceWith(textarea);
+    bodyInput = document.createElement('textarea');
+    bodyInput.className = 'note-body-input';
+    bodyInput.value = draft.body;
+    bodyInput.maxLength = NOTE_VALIDATION.BODY_MAX_LENGTH;
+    bodyInput.setAttribute('aria-label', 'Note body');
+    bodyInput.addEventListener('keydown', handleEditKeys);
+    trackDraft('body', bodyInput);
+    bodyEl.replaceWith(bodyInput);
   }
 
   if (actions) {
@@ -379,21 +496,84 @@ const startInlineEdit = (note: Note): void => {
     saveBtn.textContent = '✓';
     saveBtn.setAttribute('aria-label', 'Save note');
     saveBtn.onclick = (): void => {
-      saveInlineEdit(noteEl, note.id);
+      saveInlineEdit(noteEl, draft.id);
     };
     const cancelBtn = document.createElement('button');
     cancelBtn.type = 'button';
     cancelBtn.textContent = '✕';
     cancelBtn.setAttribute('aria-label', 'Cancel edit');
     cancelBtn.onclick = (): void => {
-      renderAllNotes();
+      endEdit();
+      renderAllNotes({ preserveEdit: false });
     };
     actions.appendChild(saveBtn);
     actions.appendChild(cancelBtn);
   }
+
+  if (!restoreFocus) {
+    return;
+  }
+
+  const target = draft.focusField === 'body' ? bodyInput : titleInput;
+  if (!target) {
+    return;
+  }
+  target.focus();
+  if (draft.selectionStart !== null && draft.selectionEnd !== null) {
+    target.setSelectionRange(draft.selectionStart, draft.selectionEnd);
+  } else if (target === titleInput) {
+    target.select();
+  }
 };
 
-const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
+const startInlineEdit = (note: Note): void => {
+  if (editDraft) {
+    if (editDraft.id === note.id) {
+      return;
+    }
+    // Switching notes commits the current draft; an invalid draft keeps
+    // the existing editor on screen instead of dropping it silently.
+    if (commitActiveEdit() === 'invalid') {
+      return;
+    }
+  }
+
+  const container = getNotesContainer();
+  if (!container) {return;}
+
+  const noteEl = findNoteElement(container, note.id);
+  if (!noteEl) {return;}
+
+  mountInlineEditor(noteEl, {
+    id: note.id,
+    title: note.title,
+    body: note.body,
+    focusField: 'title',
+    selectionStart: null,
+    selectionEnd: null,
+  }, true);
+};
+
+type CommitResult = 'none' | 'saved' | 'invalid';
+
+const commitActiveEdit = (): CommitResult => {
+  if (!editDraft) {
+    return 'none';
+  }
+
+  const container = getNotesContainer();
+  const noteEl = container ? findNoteElement(container, editDraft.id) : null;
+  const titleInput = noteEl?.querySelector<HTMLInputElement>('.note-title-input');
+  if (!noteEl || !titleInput) {
+    endEdit();
+
+    return 'none';
+  }
+
+  return saveInlineEdit(noteEl, editDraft.id) ? 'saved' : 'invalid';
+};
+
+const saveInlineEdit = (noteEl: HTMLElement, id: string): boolean => {
   const titleInput = noteEl.querySelector<HTMLInputElement>('.note-title-input');
   const bodyInput = noteEl.querySelector<HTMLTextAreaElement>('.note-body-input');
   const title = titleInput?.value.trim() || '';
@@ -403,7 +583,7 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
     showEditError(noteEl, 'A note needs a title.');
     titleInput?.focus();
 
-    return;
+    return false;
   }
 
   const existing = AppState.notes.getAll().find((n) => n.id === id);
@@ -424,13 +604,21 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
     );
     titleInput?.focus();
 
-    return;
+    return false;
   }
 
+  endEdit();
   AppState.notes.update(updated);
+
+  return true;
 };
 
 const addNote = (): void => {
+  // Don't replace an open editor with a fresh note before its draft is valid.
+  if (commitActiveEdit() === 'invalid') {
+    return;
+  }
+
   const note: Note = {
     id: AppState.generateId(),
     title: 'New Note',
@@ -474,9 +662,15 @@ const setupKeyboardShortcuts = (): void => {
 };
 
 const setupShowCompleted = (): void => {
-  const checkbox = document.getElementById('showCompletedCheckbox');
+  const checkbox = document.getElementById('showCompletedCheckbox') as HTMLInputElement | null;
   if (!checkbox) {return;}
   checkbox.addEventListener('change', () => {
+    // Commit the draft first; undo the toggle if it can't be saved.
+    if (commitActiveEdit() === 'invalid') {
+      checkbox.checked = !checkbox.checked;
+
+      return;
+    }
     renderAllNotes();
   });
 };
@@ -508,6 +702,13 @@ const setupClearCompleted = (): void => {
   btn.addEventListener('click', clearCompletedNotes);
 };
 
+/**
+ * Reads the encoded state from the hash. Accepts both `#/<state>` (the
+ * canonical format this app writes) and `#<state>`, rather than assuming
+ * the two-character prefix and chopping data off a hand-edited URL.
+ */
+const readHash = (): string => window.location.hash.replace(/^#\/?/, '');
+
 const initializeState = (hash: string): void => {
   if (!hash) {
     return;
@@ -523,7 +724,10 @@ const initializeState = (hash: string): void => {
 };
 
 const handleHashChange = (): void => {
-  const hash = window.location.hash.substring(2);
+  // Incoming URL state replaces the board wholesale, so an in-progress
+  // edit no longer has a note to attach to.
+  endEdit();
+  const hash = readHash();
   if (hash) {
     initializeState(hash);
   } else {
@@ -534,7 +738,7 @@ const handleHashChange = (): void => {
 };
 
 const initializeApp = (): void => {
-  initializeState(window.location.hash.substring(2));
+  initializeState(readHash());
   setupSearch();
   setupAddButton();
   setupCopyLink();

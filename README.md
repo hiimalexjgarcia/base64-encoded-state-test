@@ -8,14 +8,14 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 
 - **Corkboard UI** - Notes displayed as colorful sticky cards on a corkboard background
 - **Add Notes** - Click "Add Note" to create a new note and edit inline
-- **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time)
+- **Inline Editing** - Click edit on any note to modify title and body in place (one note at a time); searching, filtering, or changing another note saves the draft first instead of discarding it
 - **Keyboard Shortcuts** - `N` new note, `/` focus search, `Esc` cancel edit, `Ctrl/Cmd+Enter` save edit
 - **Pin to Top** - Pin notes to keep them prioritized at the top of the board
 - **Note Colors** - Cycle a note through a small sticky-note color palette
 - **Complete Notes** - Mark notes as completed with a checkbox; completed notes show a large red "X" overlay
 - **Show/Hide Completed** - Toggle visibility of completed notes (hidden by default)
 - **Clear Completed** - Remove all completed notes in one action
-- **Undo** - Deleted a note by accident? An undo toast appears for 6 seconds after deletions and clear-completed
+- **Undo** - Deleted a note by accident? An undo toast appears for 6 seconds after deletions and clear-completed, and its countdown pauses while the toast is focused or hovered
 - **Empty States** - Context-aware guidance when there are no notes, no search matches, or all notes are completed
 - **Copy Share Link** - Copy the current URL (with full note state) to the clipboard
 - **Delete Notes** - Remove notes with the delete button
@@ -60,7 +60,7 @@ npm run test:coverage
 
 ## How It Works
 
-Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL; if the link grows past 16k characters (or the browser refuses the history update), a visible warning banner explains that the link may not be shareable.
+Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`; the parser also accepts `#...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL; if the link grows past 16k characters (or the browser refuses the history update), a visible warning banner explains that the link may not be shareable.
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 
@@ -85,23 +85,24 @@ Run `npm run build` and upload the contents of `dist/`. Because every route live
 ```mermaid
 graph TD
     A[User loads page] --> B[index.ts initializes]
-    B --> C[Read URL hash #/encoded]
+    B --> C[Read URL hash - accepts #/encoded or #encoded]
     C --> D[AppState.state.setEncoded hash]
     D --> E[decodeState parses compact JSON]
     E --> F[AppState updates internal state]
     F --> G[PubSub publishes appStateChanged]
     G --> H[Sync URL hash via syncStateToUrl + warning guard]
-    G --> I[renderAllNotes called]
+    G --> I[renderAllNotes called - active draft restored]
     I --> M[Update notes count]
     I --> J[Get visible notes via search + completion filter + pin sort]
     J --> L[Render each note via NoteComponent]
 
-    N[User clicks Add Note or presses N] --> O[Create new note with generateId]
+    N[User clicks Add Note or presses N] --> N1[Commit active draft]
+    N1 --> O[Create new note with generateId]
     O --> P[AppState.notes.add]
     P --> F
 
     Q[User clicks Edit on note] --> R[startInlineEdit]
-    R --> S[Replace title/body with inputs]
+    R --> S[Replace title/body with inputs, tracked as a draft]
     S --> T[User saves - button or Ctrl/Cmd+Enter]
     T --> U[AppState.notes.update]
     U --> F
@@ -113,7 +114,7 @@ graph TD
 
     Y[User clicks Delete] --> Z[capture undo entry]
     Z --> AA[AppState.notes.remove]
-    AA --> AB[Show undo toast 6s]
+    AA --> AB[Show undo toast 6s, paused while focused or hovered]
     AB --> AC[User clicks Undo]
     AC --> AD[AppState.notes.setAll restores original order]
     AD --> F
@@ -122,11 +123,13 @@ graph TD
     AF --> AG[AppState.notes.clearCompleted]
     AG --> AB
 
-    AH[User types in search] --> I
+    AH[User types in search] --> AH1[Commit active draft, then debounce 100 ms]
+    AH1 --> I
 
-    AI[User toggles Show completed] --> I
+    AI[User toggles Show completed] --> AI1[Commit active draft; revert toggle if invalid]
+    AI1 --> I
 
-    AJ[User navigates hash] --> AK[hashchange event]
+    AJ[User navigates hash] --> AK[hashchange event - end active edit]
     AK --> C
     AL[Hash becomes empty] --> AM[Reset to empty board]
 ```

@@ -125,6 +125,33 @@ describe('app bootstrap', () => {
     expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes yet');
   });
 
+  it('loads state from a hash without the #/ prefix', async () => {
+    const encoded = hashFor([makeNote({ id: 'z', title: 'No prefix' })]);
+    jest.resetModules();
+    document.body.innerHTML = TOOLBAR_HTML;
+    Object.defineProperty(document, 'readyState', {
+      value: 'complete',
+      configurable: true,
+    });
+    window.history.replaceState(null, '', `/#${encoded}`);
+    await import('../index');
+    const { default: AppState } = await import('../state/appState');
+
+    expect(AppState.notes.getAll().map((n) => n.id)).toEqual(['z']);
+    expect(noteEl('z')?.querySelector('.note-title')?.textContent).toBe('No prefix');
+  });
+
+  it('reloads state from a hashchange without the #/ prefix', async () => {
+    const state = await loadApp('');
+    const encoded = hashFor([makeNote({ id: 'z', title: 'Changed' })]);
+
+    window.history.replaceState(null, '', `/#${encoded}`);
+    window.dispatchEvent(new Event('hashchange'));
+
+    expect(state.notes.getAll().map((n) => n.id)).toEqual(['z']);
+    expect(noteEl('z')?.querySelector('.note-title')?.textContent).toBe('Changed');
+  });
+
   it('boots on DOMContentLoaded when the document is still loading', async () => {
     jest.resetModules();
     document.body.innerHTML = TOOLBAR_HTML;
@@ -401,6 +428,109 @@ describe('toolbar interactions', () => {
     expect(noteEl('b')?.querySelector('.note-title-input')).not.toBeNull();
   });
 
+  it('saves an in-progress edit before applying a search filter', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'Groceries' }),
+      makeNote({ id: 'b', title: 'Homework' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    titleInput.value = 'Groceries list';
+    titleInput.dispatchEvent(new Event('input'));
+
+    jest.useFakeTimers();
+    try {
+      const search = byId<HTMLInputElement>('notesInputSearch');
+      search.value = 'Homework';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+
+      expect(state.notes.getAll().find((n) => n.id === 'a')?.title).toBe('Groceries list');
+      expect(document.querySelector('.note-title-input')).toBeNull();
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(1);
+      expect(noteEl('b')).not.toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('keeps an invalid edit open and does not apply the search', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'Groceries' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    titleInput.value = '';
+    titleInput.dispatchEvent(new Event('input'));
+
+    jest.useFakeTimers();
+    try {
+      const search = byId<HTMLInputElement>('notesInputSearch');
+      search.value = 'zzz';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+    } finally {
+      jest.useRealTimers();
+    }
+
+    expect(document.querySelectorAll('#notes .note')).toHaveLength(1);
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+    expect(document.querySelector('.note-edit-error')?.textContent).toContain('title');
+  });
+
+  it('saves an in-progress edit before toggling completed visibility', async () => {
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'First' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    titleInput.value = 'Updated';
+    titleInput.dispatchEvent(new Event('input'));
+
+    const checkbox = byId<HTMLInputElement>('showCompletedCheckbox');
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+
+    expect(state.notes.getAll()[0].title).toBe('Updated');
+    expect(document.querySelector('.note-title-input')).toBeNull();
+  });
+
+  it('reverts the completed toggle when the draft is invalid', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'First' })]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    titleInput.value = '';
+    titleInput.dispatchEvent(new Event('input'));
+
+    const checkbox = byId<HTMLInputElement>('showCompletedCheckbox');
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+
+    expect(checkbox.checked).toBe(false);
+    expect(document.querySelector('.note-title-input')).not.toBeNull();
+    expect(document.querySelector('.note-edit-error')).not.toBeNull();
+  });
+
+  it('preserves an in-progress edit when another note changes', async () => {
+    const state = await loadApp(hashFor([
+      makeNote({ id: 'a', title: 'First' }),
+      makeNote({ id: 'b', title: 'Second' }),
+    ]));
+
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const titleInput = document.querySelector('.note-title-input') as HTMLInputElement;
+    titleInput.value = 'Draft title';
+    titleInput.dispatchEvent(new Event('input'));
+
+    (noteEl('b')?.querySelector('.note-complete-checkbox') as HTMLInputElement).click();
+
+    const restored = document.querySelector('.note-title-input') as HTMLInputElement;
+    expect(restored).not.toBeNull();
+    expect(restored.value).toBe('Draft title');
+    // The draft has not been committed to state yet.
+    expect(state.notes.getAll().find((n) => n.id === 'a')?.title).toBe('First');
+  });
+
   it('replaces an existing undo toast when another note is deleted', async () => {
     const state = await loadApp(hashFor([
       makeNote({ id: 'a', title: 'First' }),
@@ -434,6 +564,48 @@ describe('toolbar interactions', () => {
 
     expect(state.notes.getAll().map((n) => n.id)).toEqual(['a', 'b']);
     expect(document.querySelector('#undoToast')).toBeNull();
+  });
+
+  it('pauses the undo timeout while the Undo button is focused', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'First' })]));
+    jest.useFakeTimers();
+    try {
+      (noteEl('a')?.querySelector('.note-delete') as HTMLButtonElement).click();
+      const undoBtn = document.querySelector('#undoToast button') as HTMLButtonElement;
+      expect(undoBtn).not.toBeNull();
+
+      // Showing the toast focuses Undo, so the countdown stays paused.
+      jest.advanceTimersByTime(6000);
+      expect(document.querySelector('#undoToast')).not.toBeNull();
+
+      undoBtn.blur();
+      jest.advanceTimersByTime(5999);
+      expect(document.querySelector('#undoToast')).not.toBeNull();
+      jest.advanceTimersByTime(1);
+      expect(document.querySelector('#undoToast')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('pauses the undo timeout while the toast is hovered', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'First' })]));
+    jest.useFakeTimers();
+    try {
+      (noteEl('a')?.querySelector('.note-delete') as HTMLButtonElement).click();
+      const toast = document.querySelector('#undoToast') as HTMLElement;
+      (toast.querySelector('button') as HTMLButtonElement).blur();
+
+      toast.dispatchEvent(new MouseEvent('mouseenter'));
+      jest.advanceTimersByTime(6000);
+      expect(document.querySelector('#undoToast')).not.toBeNull();
+
+      toast.dispatchEvent(new MouseEvent('mouseleave'));
+      jest.advanceTimersByTime(6000);
+      expect(document.querySelector('#undoToast')).toBeNull();
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('clears completed notes and can undo the clear', async () => {
