@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default [
   {
-    ignores: ['node_modules/', 'dist/', 'modernizr.js', 'webpack.config.js'],
+    ignores: ['node_modules/', 'dist/'],
   },
   {
     files: ['**/*.ts'],

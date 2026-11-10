@@ -10,16 +10,24 @@ if (typeof global.TextDecoder === 'undefined') {
   global.TextDecoder = TextDecoder;
 }
 
-// Mock DOM elements for tests that need them
+// Mock the DOM structure the app expects in index.html
 if (typeof document !== 'undefined') {
   document.body.innerHTML = `
-    <div id="notes"></div>
-    <span id="notesDisplayCount"></span>
-    <input type="search" id="notesInputSearch" />
-    <form id="addNoteForm">
-      <input name="note" />
-      <textarea name="detail"></textarea>
-    </form>
+    <div class="container">
+      <h1>Notes</h1>
+      <div class="d-flex mb-3" role="toolbar">
+        <button type="button" id="addNoteBtn" class="btn btn-primary">Add Note</button>
+        <button type="button" id="copyLinkBtn" class="btn">Copy link</button>
+        <button type="button" id="clearCompletedBtn" class="btn">Clear completed</button>
+        <label>
+          <input type="checkbox" id="showCompletedCheckbox" />
+          Show completed
+        </label>
+        <span id="notesDisplayCount" class="flex-fill text-right"></span>
+        <input type="search" id="notesInputSearch" name="q" />
+      </div>
+      <div id="notes"></div>
+    </div>
   `;
 }
 
