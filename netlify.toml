@@ -3,7 +3,9 @@
   publish = "dist"
 
 [build.environment]
-  NODE_ENV = "production"
+  # Do not set NODE_ENV=production here: npm would omit devDependencies, and
+  # the build needs tsc/vite from devDependencies. Vite builds in production
+  # mode by default.
   NODE_VERSION = "24"
 
 [[headers]]
