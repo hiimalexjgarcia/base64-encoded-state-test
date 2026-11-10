@@ -19,7 +19,7 @@ A vanilla TypeScript sticky note web app that persists all application state in 
 - **Empty States** - Context-aware guidance when there are no notes, no search matches, or all notes are completed
 - **Copy Share Link** - Copy the current URL (with full note state) to the clipboard
 - **Delete Notes** - Remove notes with the delete button
-- **Search** - Fuzzy search across note titles and bodies using Fuse.js
+- **Search** - Debounced fuzzy search across note titles and bodies using Fuse.js
 - **URL State Persistence** - Entire app state is encoded in the URL hash for easy sharing and bookmarking
 - **No Backend Required** - Fully client-side application
 
@@ -100,7 +100,7 @@ graph TD
     AC --> AD[AppState.notes.setAll restores original order]
     AD --> F
 
-    AE[User clicks Clear completed] --> AF[confirm + capture undo entries]
+    AE[User clicks Clear completed] --> AF[capture undo entries]
     AF --> AG[AppState.notes.clearCompleted]
     AG --> AB
 

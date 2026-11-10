@@ -270,16 +270,28 @@ AppState.pubsub.subscribe('appStateChanged', () => {
   renderAllNotes();
 });
 
+// Wait for typing to settle before running the fuzzy-search pipeline.
+// Re-rendering the whole board on every keystroke gets sluggish once a
+// shared link carries hundreds of notes.
+const SEARCH_DEBOUNCE_MS = 100;
+
 const setupSearch = (): void => {
   const input = getSearchInput();
   if (!input) {return;}
 
-  const onSearch = (): void => {
-    renderAllNotes();
+  let timer: number | null = null;
+  const scheduleRender = (): void => {
+    if (timer !== null) {
+      window.clearTimeout(timer);
+    }
+    timer = window.setTimeout(() => {
+      timer = null;
+      renderAllNotes();
+    }, SEARCH_DEBOUNCE_MS);
   };
 
-  input.addEventListener('input', onSearch, false);
-  input.addEventListener('search', onSearch, false);
+  input.addEventListener('input', scheduleRender, false);
+  input.addEventListener('search', scheduleRender, false);
 };
 
 const EDIT_ERROR_CLASS = 'note-edit-error';
@@ -491,14 +503,9 @@ const setupCopyLink = (): void => {
 const setupClearCompleted = (): void => {
   const btn = document.getElementById('clearCompletedBtn');
   if (!btn) {return;}
-  btn.addEventListener('click', () => {
-    const completedCount = AppState.notes.getAll().filter((n) => n.completed).length;
-    if (completedCount === 0) {return;}
-    // eslint-disable-next-line no-alert
-    if (window.confirm(`Clear ${completedCount} completed note${completedCount !== 1 ? 's' : ''}?`)) {
-      clearCompletedNotes();
-    }
-  });
+  // Undo already covers accidental clears, so a confirm dialog would only
+  // add friction on top of the recovery path.
+  btn.addEventListener('click', clearCompletedNotes);
 };
 
 const initializeState = (hash: string): void => {

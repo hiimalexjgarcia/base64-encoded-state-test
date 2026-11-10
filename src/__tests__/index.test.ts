@@ -292,26 +292,40 @@ describe('toolbar interactions', () => {
     expect(document.querySelector('.note-title-input')).toBeNull();
   });
 
-  it('filters notes by search and shows a no-match empty state', async () => {
+  it('debounces search and then filters notes', async () => {
     await loadApp(hashFor([
       makeNote({ id: 'a', title: 'Groceries' }),
       makeNote({ id: 'b', title: 'Homework' }),
     ]));
     const search = byId<HTMLInputElement>('notesInputSearch');
 
-    search.value = 'Homework';
-    search.dispatchEvent(new Event('input'));
-    expect(document.querySelectorAll('#notes .note')).toHaveLength(1);
-    expect(noteEl('b')).not.toBeNull();
+    jest.useFakeTimers();
+    try {
+      search.value = 'Homework';
+      search.dispatchEvent(new Event('input'));
 
-    search.value = 'qqqqqqqq';
-    search.dispatchEvent(new Event('input'));
-    expect(document.querySelectorAll('#notes .note')).toHaveLength(0);
-    expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes match');
+      // The previous render is still on screen until typing settles.
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(2);
+      jest.advanceTimersByTime(99);
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(2);
 
-    search.value = '';
-    search.dispatchEvent(new Event('input'));
-    expect(document.querySelectorAll('#notes .note')).toHaveLength(2);
+      jest.advanceTimersByTime(1);
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(1);
+      expect(noteEl('b')).not.toBeNull();
+
+      search.value = 'qqqqqqqq';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(0);
+      expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes match');
+
+      search.value = '';
+      search.dispatchEvent(new Event('input'));
+      jest.advanceTimersByTime(100);
+      expect(document.querySelectorAll('#notes .note')).toHaveLength(2);
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it('reveals completed notes when Show completed is toggled', async () => {
@@ -422,13 +436,12 @@ describe('toolbar interactions', () => {
     expect(document.querySelector('#undoToast')).toBeNull();
   });
 
-  it('clears completed notes after confirmation and can undo the clear', async () => {
+  it('clears completed notes and can undo the clear', async () => {
     const state = await loadApp(hashFor([
       makeNote({ id: 'a', title: 'Active' }),
       makeNote({ id: 'b', title: 'Done 1', completed: true }),
       makeNote({ id: 'c', title: 'Done 2', completed: true }),
     ]));
-    jest.spyOn(window, 'confirm').mockReturnValue(true);
 
     byId<HTMLButtonElement>('clearCompletedBtn').click();
     expect(state.notes.getAll().map((n) => n.id)).toEqual(['a']);
@@ -438,16 +451,12 @@ describe('toolbar interactions', () => {
     expect(state.notes.getAll().map((n) => n.id)).toEqual(['a', 'b', 'c']);
   });
 
-  it('keeps completed notes when the clear confirmation is declined', async () => {
-    const state = await loadApp(hashFor([
-      makeNote({ id: 'a', title: 'Active' }),
-      makeNote({ id: 'b', title: 'Done', completed: true }),
-    ]));
-    jest.spyOn(window, 'confirm').mockReturnValue(false);
+  it('does nothing when there are no completed notes to clear', async () => {
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'Active' })]));
 
     byId<HTMLButtonElement>('clearCompletedBtn').click();
 
-    expect(state.notes.getAll()).toHaveLength(2);
+    expect(state.notes.getAll()).toHaveLength(1);
     expect(document.querySelector('#undoToast')).toBeNull();
   });
 
