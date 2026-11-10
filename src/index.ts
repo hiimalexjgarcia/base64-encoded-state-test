@@ -51,10 +51,32 @@ function createNoteElement(note: Note): HTMLElement {
   });
 }
 
+const getEmptyStateMessage = (): string => {
+  const query = (getSearchInput()?.value ?? '').trim();
+  const total = AppState.notes.getAll().length;
+
+  if (total === 0) {
+    return 'No notes yet — click “Add Note” to create one.';
+  }
+  if (query) {
+    return `No notes match “${query}”.`;
+  }
+
+  return 'All notes are completed — toggle “Show completed” to view them.';
+};
+
 function renderNotes(notes: Note[]): void {
   const container = getNotesContainer();
   if (!container) {return;}
   container.innerHTML = '';
+  if (notes.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'notes-empty';
+    empty.textContent = getEmptyStateMessage();
+    container.appendChild(empty);
+
+    return;
+  }
   notes.forEach((note) => {
     if (validateNote(note)) {
       container.appendChild(createNoteElement(note));
@@ -103,10 +125,21 @@ const startInlineEdit = (note: Note): void => {
   const bodyEl = noteEl.querySelector<HTMLElement>('.note-body');
   const actions = noteEl.querySelector<HTMLElement>('.note-actions');
 
+  const handleEditKeys = (event: KeyboardEvent): void => {
+    if (event.key === 'Escape') {
+      event.preventDefault();
+      renderAllNotes();
+    } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+      event.preventDefault();
+      saveInlineEdit(noteEl, note.id);
+    }
+  };
+
   if (titleEl) {
     const input = document.createElement('input');
     input.className = 'note-title-input';
     input.value = note.title;
+    input.addEventListener('keydown', handleEditKeys);
     titleEl.replaceWith(input);
     input.focus();
     input.select();
@@ -116,6 +149,7 @@ const startInlineEdit = (note: Note): void => {
     const textarea = document.createElement('textarea');
     textarea.className = 'note-body-input';
     textarea.value = note.body;
+    textarea.addEventListener('keydown', handleEditKeys);
     bodyEl.replaceWith(textarea);
   }
 
@@ -163,19 +197,46 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): void => {
   });
 };
 
+const addNote = (): void => {
+  const note: Note = {
+    id: AppState.generateId(),
+    title: 'New Note',
+    body: '',
+    color: randomColor(),
+  };
+  AppState.notes.add(note);
+  startInlineEdit(note);
+};
+
 const setupAddButton = (): void => {
   const addBtn = document.getElementById('addNoteBtn');
   if (!addBtn) {return;}
 
-  addBtn.addEventListener('click', () => {
-    const note: Note = {
-      id: AppState.generateId(),
-      title: 'New Note',
-      body: '',
-      color: randomColor(),
-    };
-    AppState.notes.add(note);
-    startInlineEdit(note);
+  addBtn.addEventListener('click', addNote);
+};
+
+const isTypingTarget = (target: EventTarget | null): boolean => {
+  if (!(target instanceof HTMLElement)) {return false;}
+
+  return (
+    target.tagName === 'INPUT' ||
+    target.tagName === 'TEXTAREA' ||
+    target.isContentEditable
+  );
+};
+
+const setupKeyboardShortcuts = (): void => {
+  document.addEventListener('keydown', (event) => {
+    if (event.ctrlKey || event.metaKey || event.altKey) {return;}
+    if (isTypingTarget(event.target)) {return;}
+
+    if (event.key === 'n' || event.key === 'N') {
+      event.preventDefault();
+      addNote();
+    } else if (event.key === '/') {
+      event.preventDefault();
+      getSearchInput()?.focus();
+    }
   });
 };
 
@@ -239,6 +300,7 @@ const initializeApp = (): void => {
   setupCopyLink();
   setupClearCompleted();
   setupShowCompleted();
+  setupKeyboardShortcuts();
   window.addEventListener('hashchange', () => {
     initializeState();
   }, false);

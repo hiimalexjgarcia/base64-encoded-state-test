@@ -148,6 +148,17 @@ input[type="search"]::placeholder {
     margin-bottom: 1.5rem;
 }
 
+.notes-empty {
+    grid-column: 1 / -1;
+    margin: 0;
+    padding: 3rem 1rem;
+    text-align: center;
+    color: #f0e6d2;
+    font-style: italic;
+    border: 2px dashed rgba(240, 230, 210, 0.35);
+    border-radius: 4px;
+}
+
 .note {
     position: relative;
     background: linear-gradient(180deg, #fff59d 0%, #fff9c4 100%);
