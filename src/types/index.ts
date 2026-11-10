@@ -64,7 +64,6 @@ export interface IAppState {
     remove: (note: Note) => void;
     clearCompleted: () => void;
     setAll: (notes: Note[]) => void;
-    search: (query: string) => Array<{ item: Note; score: number }>;
   };
   generateId: () => string;
   pubsub: {

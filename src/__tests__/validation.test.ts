@@ -1,4 +1,4 @@
-import { validateNote, sanitizeString } from '../utils/validation';
+import { validateNote } from '../utils/validation';
 import { NOTE_VALIDATION } from '../types';
 import { Note } from '../types';
 
@@ -84,33 +84,6 @@ describe('validation utils', () => {
         title: 'Title',
       };
       expect(validateNote(note as unknown as Note)).toBe(true);
-    });
-  });
-
-  describe('sanitizeString', () => {
-    it('should return empty string for null', () => {
-      expect(sanitizeString(null)).toBe('');
-    });
-
-    it('should return empty string for undefined', () => {
-      expect(sanitizeString(undefined)).toBe('');
-    });
-
-    it('should convert non-string to string', () => {
-      expect(sanitizeString(123)).toBe('123');
-      expect(sanitizeString(true)).toBe('true');
-    });
-
-    it('should escape HTML special characters', () => {
-      expect(sanitizeString('<script>')).toBe('&lt;script&gt;');
-      expect(sanitizeString('&')).toBe('&amp;');
-      expect(sanitizeString('"test"')).toBe('&quot;test&quot;');
-      expect(sanitizeString('\'test\'')).toBe('&#39;test&#39;');
-    });
-
-    it('should not modify safe strings', () => {
-      expect(sanitizeString('Hello World')).toBe('Hello World');
-      expect(sanitizeString('Test 123')).toBe('Test 123');
     });
   });
 });

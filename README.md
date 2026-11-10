@@ -58,7 +58,7 @@ npm run test:coverage
 
 ## How It Works
 
-Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL.
+Application state (all notes) is serialized, compacted with short keys (`i` id, `t` title, `b` body, `c` completed, `p` pinned, `k` color), encoded as UTF-8, converted to base64url, and stored in the URL hash (`#/...`). On page load or hash change, the state is decoded and restored. Any state change automatically updates the URL; if the link grows past 16k characters (or the browser refuses the history update), a visible warning banner explains that the link may not be shareable.
 
 See [APP_FLOW.md](./APP_FLOW.md) for a detailed flow diagram.
 
@@ -72,9 +72,9 @@ graph TD
     D --> E[decodeState parses compact JSON]
     E --> F[AppState updates internal state]
     F --> G[PubSub publishes appStateChanged]
-    G --> H[Sync URL hash via syncStateToUrl + length check]
+    G --> H[Sync URL hash via syncStateToUrl + warning guard]
     G --> I[renderAllNotes called]
-    G --> M[Update notes count]
+    I --> M[Update notes count]
     I --> J[Get visible notes via search + completion filter + pin sort]
     J --> L[Render each note via NoteComponent]
 
@@ -110,4 +110,5 @@ graph TD
 
     AJ[User navigates hash] --> AK[hashchange event]
     AK --> C
+    AL[Hash becomes empty] --> AM[Reset to empty board]
 ```

@@ -272,57 +272,6 @@ describe('appState', () => {
     });
   });
 
-  describe('notes.search', () => {
-    beforeEach(() => {
-      appState.notes.add({ id: 'note-1', title: 'Hello World', body: 'This is a test' });
-      appState.notes.add({ id: 'note-2', title: 'Goodbye World', body: 'This is another test' });
-      appState.notes.add({ id: 'note-3', title: 'Test', body: 'Just a test' });
-    });
-
-    it('should find notes matching title', () => {
-      const results = appState.notes.search('Hello');
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0].item.title).toContain('Hello');
-    });
-
-    it('should find notes matching body', () => {
-      const results = appState.notes.search('another');
-      expect(results.length).toBeGreaterThan(0);
-      expect(results[0].item.body).toContain('another');
-    });
-
-    it('should return all notes for empty query', () => {
-      const results = appState.notes.search('');
-      expect(results).toHaveLength(3);
-    });
-
-    it('should return all notes for whitespace query', () => {
-      const results = appState.notes.search('   ');
-      expect(results).toHaveLength(3);
-    });
-
-    it('should return empty array for non-matching query', () => {
-      const results = appState.notes.search('NonExistent');
-      expect(results).toHaveLength(0);
-    });
-
-    it('should return cloned items, not live state references', () => {
-      const results = appState.notes.search('');
-      const sentinel = 'mutated-outside';
-
-      expect(results).toHaveLength(3);
-      results[0].item.title = sentinel;
-      expect(appState.notes.getAll()[0].title).not.toBe(sentinel);
-    });
-
-    it('should keep live state intact when mutating returned search items', () => {
-      const results = appState.notes.search('Hello');
-      results[0].item.body = 'tampered';
-
-      expect(appState.notes.getAll()[0].body).toBe('This is a test');
-    });
-  });
-
   describe('state encoding/decoding', () => {
     it('should encode state to base64', () => {
       appState.notes.add({ id: 'test-id', title: 'Test', body: 'Body' });

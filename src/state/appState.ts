@@ -3,7 +3,6 @@
  * Uses simple callback system to notify subscribers of state changes
  */
 
-import Fuse from 'fuse.js';
 import { AppState as AppStateType, Note, EncodedState, IAppState } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { validateNote } from '../utils/validation';
@@ -254,34 +253,6 @@ const createAppState = (): IAppState => {
           ...currentState,
           notes: Array.isArray(notes) ? notes.filter(note => validateNote(note)) : [],
         }));
-      },
-
-      /**
-       * Searches notes using Fuse.js
-       * @param query - Search query
-       * @returns Search results
-       */
-      search: (query: string): Array<{ item: Note; score: number }> => {
-        if (!query || typeof query !== 'string' || query.trim().length === 0) {
-          return cloneState(state.notes).map(note => ({ item: note, score: 0 }));
-        }
-
-        try {
-          const fuse = new Fuse(cloneState(state.notes), {
-            useExtendedSearch: true,
-            keys: ['title', 'body'],
-          });
-
-          return fuse.search(query) as Array<{ item: Note; score: number }>;
-        } catch (error) {
-          handleError(error, {
-            module: 'state',
-            method: 'notes.search',
-            silent: true,
-          });
-
-          return [];
-        }
       },
     },
 

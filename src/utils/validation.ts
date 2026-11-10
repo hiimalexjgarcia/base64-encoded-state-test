@@ -29,21 +29,3 @@ export const validateNote = (note: unknown): note is Note => {
   );
 };
 
-/**
- * Sanitizes a string for safe display
- * @param str - The string to sanitize
- * @returns Sanitized string
- */
-export const sanitizeString = (str: unknown): string => {
-  if (str === null || str === undefined) {return '';}
-  if (typeof str !== 'string') {return String(str);}
-
-  // Basic HTML escaping for XSS prevention
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-};
-
