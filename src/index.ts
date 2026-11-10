@@ -202,12 +202,12 @@ function renderNotes(notes: Note[]): void {
 function renderAllNotes(): void {
   editingId = null;
   renderNotes(renderVisibleNotes());
+  updateNotesCount();
 }
 
 AppState.pubsub.subscribe('appStateChanged', () => {
   syncStateToUrl();
   renderAllNotes();
-  updateNotesCount();
 });
 
 const setupSearch = (): void => {
