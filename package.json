@@ -38,8 +38,8 @@
     "vite-tsconfig-paths": "^5.0.0"
   },
   "dependencies": {
-    "fuse.js": "^6.6.2",
-    "nanoid": "^5.1.16"
+    "fuse.js": "^7.5.0",
+    "nanoid": "^6.0.2"
   },
   "allowScripts": {
     "@parcel/watcher@2.6.0": true,
