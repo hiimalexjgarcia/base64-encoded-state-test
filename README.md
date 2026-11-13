@@ -48,7 +48,7 @@ The build is static, so any static host works. For Netlify, connect the reposito
 
 ## Release notes
 
-See [CHANGELOG.md](./CHANGELOG.md). The current release is `v0.1.1`.
+See [CHANGELOG.md](./CHANGELOG.md). The current release is `v0.2.0`.
 
 ## License
 
