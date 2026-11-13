@@ -143,6 +143,9 @@ describe('clear completed', () => {
       makeNote({ id: 'c', title: 'Done 2', completed: true }),
     ]));
 
+    byId<HTMLInputElement>('showCompletedCheckbox').checked = true;
+    byId<HTMLInputElement>('showCompletedCheckbox').dispatchEvent(new Event('change'));
+
     byId<HTMLButtonElement>('clearCompletedBtn').click();
     expect(store.getNotes().map((n) => n.id)).toEqual(['a']);
     expect(document.querySelector('#undoToast')?.textContent).toContain('2 notes cleared.');
@@ -153,6 +156,9 @@ describe('clear completed', () => {
 
   it('does nothing when there are no completed notes to clear', () => {
     const { store } = loadApp(hashFor([makeNote({ id: 'a', title: 'Active' })]));
+
+    byId<HTMLInputElement>('showCompletedCheckbox').checked = true;
+    byId<HTMLInputElement>('showCompletedCheckbox').dispatchEvent(new Event('change'));
 
     byId<HTMLButtonElement>('clearCompletedBtn').click();
 

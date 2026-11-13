@@ -101,7 +101,22 @@ export const createToolbar = (deps: ToolbarDeps): ToolbarCleanup => {
     cleanups.push(() => copyBtn.removeEventListener('click', onCopy));
   }
 
-  const clearBtn = document.getElementById('clearCompletedBtn');
+  const showCompleted = getShowCompletedCheckbox();
+  const clearBtn = document.getElementById('clearCompletedBtn') as HTMLButtonElement | null;
+
+  const syncClearCompletedVisibility = (): void => {
+    if (!clearBtn) {
+      return;
+    }
+
+    const visible = !!showCompleted?.checked;
+    // Never leave focus on an element that disappears.
+    if (!visible && document.activeElement === clearBtn) {
+      showCompleted?.focus();
+    }
+    clearBtn.hidden = !visible;
+  };
+
   if (clearBtn) {
     // Undo already covers accidental clears, so a confirm dialog would only
     // add friction on top of the recovery path.
@@ -109,7 +124,8 @@ export const createToolbar = (deps: ToolbarDeps): ToolbarCleanup => {
     cleanups.push(() => clearBtn.removeEventListener('click', deps.clearCompleted));
   }
 
-  const showCompleted = getShowCompletedCheckbox();
+  syncClearCompletedVisibility();
+
   if (showCompleted) {
     const onShowCompletedChange = (): void => {
       // Commit the draft first; undo the toggle if it can't be saved.
@@ -118,6 +134,7 @@ export const createToolbar = (deps: ToolbarDeps): ToolbarCleanup => {
 
         return;
       }
+      syncClearCompletedVisibility();
       deps.board.render();
     };
     showCompleted.addEventListener('change', onShowCompletedChange);

@@ -132,6 +132,28 @@ describe('app startup', () => {
     expect(document.querySelectorAll('#notes .note')).toHaveLength(2);
   });
 
+  it('shows Clear completed only while completed notes are visible', () => {
+    loadApp(hashFor([
+      makeNote({ id: 'a', title: 'Active' }),
+      makeNote({ id: 'b', title: 'Done', completed: true }),
+    ]));
+
+    const checkbox = byId<HTMLInputElement>('showCompletedCheckbox');
+    const clearBtn = byId<HTMLButtonElement>('clearCompletedBtn');
+
+    expect(clearBtn.hidden).toBe(true);
+
+    checkbox.checked = true;
+    checkbox.dispatchEvent(new Event('change'));
+
+    expect(clearBtn.hidden).toBe(false);
+
+    checkbox.checked = false;
+    checkbox.dispatchEvent(new Event('change'));
+
+    expect(clearBtn.hidden).toBe(true);
+  });
+
   it('marks a note complete and hides it, then shows the all-completed empty state', () => {
     const { store } = loadApp(hashFor([makeNote({ id: 'a', title: 'Only note' })]));
 

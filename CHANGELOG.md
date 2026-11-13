@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.3.3] - 2026-11-13
+
+### Changed
+
+- "Clear completed" is hidden unless "Show completed" is checked, so the
+  action only appears when the notes it affects are visible. If the button is
+  focused when it hides, focus moves to the checkbox.
+
 ## [0.3.2] - 2026-11-13
 
 ### Changed
