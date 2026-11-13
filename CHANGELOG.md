@@ -4,6 +4,13 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.3.1] - 2026-11-13
+
+### Fixed
+
+- Updated repository links after the GitHub repository was renamed to
+  `linkboard`: fork-me ribbon, package metadata, and security advisories URL.
+
 ## [0.3.0] - 2026-11-13
 
 ### Changed

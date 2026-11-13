@@ -3,7 +3,7 @@
 ## Reporting a vulnerability
 
 Please report security issues privately through the repository's
-[GitHub Security Advisories](https://github.com/hiimalexjgarcia/base64-encoded-state-test/security/advisories/new)
+[GitHub Security Advisories](https://github.com/hiimalexjgarcia/linkboard/security/advisories/new)
 rather than opening a public issue. Include reproduction steps and the
 affected commit or deployment URL. You can expect an initial response within
 a few days.
