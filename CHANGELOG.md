@@ -8,21 +8,16 @@ All notable changes to this project are documented here. The format follows
 
 ### Changed
 
-- Split the monolithic `src/index.ts` into focused modules: `src/main.ts` as the
-  entry point, `src/app/` for the composition root and app services,
-  `src/notes/` for the model, store, and selectors, `src/persistence/` for the
-  URL codec, `src/ui/` for the DOM factories, and `src/styles/` for CSS.
-- `bootstrap(store = noteStore)` is now a callable composition root that returns
-  an `AppController` with `destroy()`, so the app can be torn down cleanly.
-- The store exposes a flattened API with typed `MutationResult`/`LoadResult`
-  values; `loadEncoded()` reports decode errors without changing state.
-- Visible-note selection moved behind `createVisibleNotesSelector()`, which owns
-  the Fuse revision cache while the pure pipeline helpers stay exported.
-- Unit tests now live next to their modules; whole-app tests moved to `tests/`
-  and share `tests/support/appHarness.ts`, which boots the app against the real
-  `index.html` body instead of a hand-maintained toolbar fixture.
-- Refreshed `README.md` and `APP_FLOW.md` for the new module layout; the flow
-  diagram now lives only in `APP_FLOW.md`.
+- Split `src/index.ts` into focused modules: `main.ts` (entry), `app/`
+  (composition and services), `notes/` (model, store, selectors),
+  `persistence/` (URL codec), `ui/` (DOM factories), and `styles/` (CSS).
+- `bootstrap(store = noteStore)` now returns an `AppController` with
+  `destroy()`, and the store exposes a flattened API with typed
+  `MutationResult`/`LoadResult` values.
+- Unit tests are colocated with their modules; whole-app tests moved to
+  `tests/` and share a harness that boots against the real `index.html` body.
+- Simplified `README.md` and `APP_FLOW.md`; the flow diagram now lives only in
+  `APP_FLOW.md`.
 
 ## [0.1.1] - 2026-11-12
 
