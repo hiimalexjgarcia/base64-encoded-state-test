@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.3.2] - 2026-11-13
+
+### Changed
+
+- Removed the corkboard gradient/noise background and the page-level "Notes"
+  heading. The empty-state colors and browser theme color now match the plain
+  light background.
+
 ## [0.3.1] - 2026-11-13
 
 ### Fixed
