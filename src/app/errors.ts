@@ -1,11 +1,15 @@
 /**
- * Centralized error handling utility
+ * Application error logging shared by the store and UI modules.
  */
 
-import { ErrorContext } from '../types';
+export interface ErrorContext {
+  module?: string;
+  method?: string;
+  silent?: boolean;
+}
 
 /**
- * Handles errors consistently across the application
+ * Handles errors consistently across the application.
  * @param error - The error to handle
  * @param context - Context information for debugging
  */

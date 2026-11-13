@@ -3,8 +3,8 @@ module.exports = {
   preset: 'ts-jest/presets/default-esm',
   testEnvironment: 'jsdom',
   extensionsToTreatAsEsm: ['.ts'],
-  roots: ['<rootDir>/src'],
-  testMatch: ['**/__tests__/**/*.+(ts|tsx|js)', '**/?(*.)+(spec|test).+(ts|tsx|js)'],
+  roots: ['<rootDir>/src', '<rootDir>/tests'],
+  testMatch: ['**/?(*.)+(spec|test).+(ts|tsx|js)'],
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       useESM: true,
@@ -12,13 +12,14 @@ module.exports = {
     }],
   },
   moduleNameMapper: {
-    '\\.(css|less|sass|scss)$': '<rootDir>/jestMocks/style-stub.js',
+    '\\.(css|less|sass|scss)$': '<rootDir>/tests/support/styleStub.cjs',
     '^(\\.{1,2}/.*)\\.js$': '$1',
   },
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
   collectCoverageFrom: [
     'src/**/*.ts',
     '!src/**/*.d.ts',
+    '!src/**/*.test.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

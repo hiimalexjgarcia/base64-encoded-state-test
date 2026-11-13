@@ -1,4 +1,8 @@
-import { Note as NoteType, NoteColor } from '../types';
+/**
+ * Note card component: renders one sticky note as DOM.
+ */
+
+import { Note, NoteColor } from '../notes/model';
 
 export interface NoteActions {
   onDelete: () => void;
@@ -8,7 +12,12 @@ export interface NoteActions {
   onCycleColor?: () => void;
 }
 
-const createButton = (className: string, label: string, text: string, onClick: () => void): HTMLButtonElement => {
+const createButton = (
+  className: string,
+  label: string,
+  text: string,
+  onClick: () => void,
+): HTMLButtonElement => {
   const button = document.createElement('button');
   button.type = 'button';
   button.className = className;
@@ -43,7 +52,7 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
 
 const colorClass = (color?: NoteColor): string => color ? ` note-color-${color}` : '';
 
-const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
+export const createNoteCard = (note: Note, actionsConfig: NoteActions): HTMLElement => {
   const { onDelete, onEdit, onToggleComplete, onPin, onCycleColor } = actionsConfig;
 
   const el = document.createElement('div');
@@ -115,5 +124,3 @@ const Note = (note: NoteType, actionsConfig: NoteActions): HTMLElement => {
 
   return el;
 };
-
-export default Note;

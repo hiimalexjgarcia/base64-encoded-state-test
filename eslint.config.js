@@ -8,7 +8,7 @@ const __dirname = path.dirname(__filename);
 
 export default [
   {
-    ignores: ['node_modules/', 'dist/'],
+    ignores: ['node_modules/', 'dist/', 'coverage/'],
   },
   {
     files: ['**/*.ts'],
@@ -65,7 +65,6 @@ export default [
   },
   {
     files: ['**/*.js', '**/*.cjs'],
-    ignores: ['jestMocks/**'],
     languageOptions: {
       ecmaVersion: 2022,
       sourceType: 'module',

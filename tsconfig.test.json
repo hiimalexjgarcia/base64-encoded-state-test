@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["jest", "node", "vite/client"]
   },
-  "include": ["src/**/*", "jest.setup.js"],
+  "include": ["src/**/*", "tests/**/*", "jest.setup.js"],
   "exclude": ["node_modules", "dist"]
 }

@@ -4,6 +4,26 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+
+- Split the monolithic `src/index.ts` into focused modules: `src/main.ts` as the
+  entry point, `src/app/` for the composition root and app services,
+  `src/notes/` for the model, store, and selectors, `src/persistence/` for the
+  URL codec, `src/ui/` for the DOM factories, and `src/styles/` for CSS.
+- `bootstrap(store = noteStore)` is now a callable composition root that returns
+  an `AppController` with `destroy()`, so the app can be torn down cleanly.
+- The store exposes a flattened API with typed `MutationResult`/`LoadResult`
+  values; `loadEncoded()` reports decode errors without changing state.
+- Visible-note selection moved behind `createVisibleNotesSelector()`, which owns
+  the Fuse revision cache while the pure pipeline helpers stay exported.
+- Unit tests now live next to their modules; whole-app tests moved to `tests/`
+  and share `tests/support/appHarness.ts`, which boots the app against the real
+  `index.html` body instead of a hand-maintained toolbar fixture.
+- Refreshed `README.md` and `APP_FLOW.md` for the new module layout; the flow
+  diagram now lives only in `APP_FLOW.md`.
+
 ## [0.1.1] - 2026-11-12
 
 ### Added

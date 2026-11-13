@@ -1,11 +1,9 @@
 /**
- * URL state encoding/decoding utilities
- * Uses compact JSON + base64url for URL-safe encoding
+ * URL state codec: compact JSON + base64url for URL-safe persistence.
  */
 
 import { nanoid } from 'nanoid';
-import { AppState, Note, NOTE_COLORS, NoteColor } from '../types';
-import { validateNote } from './validation';
+import { AppState, Note, NOTE_COLORS, NoteColor, validateNote } from '../notes/model';
 
 interface CompactNote {
   i: string;
@@ -153,8 +151,8 @@ const compactStateBytes = (state: AppState): Uint8Array =>
 
 /**
  * Returns true when the board's compact JSON payload fits within the write
- * budget. AppState refuses mutations that would exceed this, so the app can
- * never generate a link that decodeState would reject.
+ * budget. The store refuses mutations that would exceed this, so the app can
+ * never generate a link that the decoder would reject.
  */
 export const isStateWithinBudget = (state: AppState): boolean => {
   try {
@@ -169,14 +167,14 @@ export const isStateWithinBudget = (state: AppState): boolean => {
 };
 
 /**
- * Encodes application state to a URL-safe string
+ * Encodes application state to a URL-safe string.
  */
 export const encodeState = (state: AppState): string => {
   try {
     if (!state?.notes?.length) {return '';}
     const bytes = compactStateBytes(state);
-    // Defensive: AppState enforces the budget before committing a change, but
-    // returning an unreadable link is never an acceptable fallback.
+    // Defensive: the store enforces the budget before committing a change,
+    // but returning an unreadable link is never an acceptable fallback.
     if (bytes.length > MAX_STATE_BYTES) {return '';}
 
     const encoded = toBase64Url(uint8ToBase64(bytes));

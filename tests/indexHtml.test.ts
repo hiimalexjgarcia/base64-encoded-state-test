@@ -1,7 +1,7 @@
 /**
- * Smoke test for the real index.html. jsdom tests otherwise build their own
- * toolbar fixture, so a change to index.html could silently break the IDs and
- * roles the app queries at startup.
+ * Smoke test for the real index.html. jsdom integration tests now use the
+ * real body markup, but this still guards the document-level metadata and the
+ * entry script that Vite builds against.
  */
 
 import { readFileSync } from 'node:fs';
@@ -35,9 +35,9 @@ describe('index.html', () => {
     expect(doc.querySelector('[role="group"][aria-label="Note controls"]')).not.toBeNull();
   });
 
-  it('boots from a module script without inline styles', () => {
+  it('boots from the new module entry without inline styles', () => {
     const script = doc.querySelector('script[type="module"]');
-    expect(script?.getAttribute('src')).toBe('/src/index.ts');
+    expect(script?.getAttribute('src')).toBe('/src/main.ts');
     expect(doc.querySelectorAll('[style]')).toHaveLength(0);
   });
 
