@@ -15,12 +15,15 @@ interface CompactNote {
 }
 
 interface CompactState {
-  /** URL schema version. Links without a version are treated as v1. */
+  /** Required URL schema version. */
   v: 1;
   n: CompactNote[];
 }
 
 const URL_STATE_VERSION = 1 as const;
+
+/** Canonical base64url alphabet; the encoder never emits padding. */
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 /**
  * Upper bound for an encoded hash. Browsers cap URLs well below this, so a
@@ -73,12 +76,8 @@ const base64ToUint8 = (base64: string): Uint8Array => {
 const toBase64Url = (str: string): string =>
   str.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-const fromBase64Url = (str: string): string => {
-  const pad = (4 - str.length % 4) % 4;
-  const padded = pad ? str + '='.repeat(pad) : str;
-
-  return padded.replace(/-/g, '+').replace(/_/g, '/');
-};
+const fromBase64Url = (str: string): string =>
+  str.replace(/-/g, '+').replace(/_/g, '/');
 
 const compactState = (state: AppState): CompactState => ({
   v: URL_STATE_VERSION,
@@ -122,10 +121,10 @@ const expandState = (compact: unknown): AppState => {
       title: typeof n.t === 'string' ? n.t : '',
       body: typeof n.b === 'string' ? n.b : '',
     };
-    if (n.c) {
+    if (n.c === 1) {
       note.completed = true;
     }
-    if (n.p) {
+    if (n.p === 1) {
       note.pinned = true;
     }
     if (typeof n.k === 'string' && NOTE_COLORS.includes(n.k as NoteColor)) {
@@ -196,6 +195,9 @@ export const decodeStateDetailed = (encoded: string): DecodeResult => {
   if (encoded.length > MAX_ENCODED_LENGTH) {
     return { state: empty, error: 'too-long' };
   }
+  if (!BASE64URL_PATTERN.test(encoded)) {
+    return { state: empty, error: 'invalid-encoding' };
+  }
 
   let json: string;
   try {
@@ -218,19 +220,11 @@ export const decodeStateDetailed = (encoded: string): DecodeResult => {
   if (!Array.isArray(compact.n)) {
     return { state: empty, error: 'invalid-shape' };
   }
-  // Links written before the version field are implicitly v1.
-  if (compact.v !== undefined && compact.v !== URL_STATE_VERSION) {
+  if (compact.v !== URL_STATE_VERSION) {
     return { state: empty, error: 'unsupported-version' };
   }
 
   return { state: expandState(compact), error: null };
 };
-
-/**
- * Decodes a URL-safe string to application state. Use decodeStateDetailed
- * when the reason for a failure needs to be shown to the user.
- */
-export const decodeState = (encoded: string): AppState =>
-  decodeStateDetailed(encoded).state;
 
 export const generateId = (): string => nanoid();

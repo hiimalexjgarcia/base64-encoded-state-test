@@ -34,7 +34,7 @@ npm run lint      # lint
 
 ## How It Works
 
-Notes are compacted to short keys, UTF-8 encoded, and stored as base64url in the URL hash (`#/...`). State changes rewrite the hash, and the board restores from it on load or `hashchange`. Links are schema-versioned and capped at 75,000 UTF-8 bytes so a generated link can always be decoded. If the URL gets too long or the browser refuses the update, a visible warning explains; unreadable links are preserved with a reason and a "Start empty" option. Copy link rebuilds the canonical URL from current state.
+Notes are compacted to short keys, UTF-8 encoded, and stored as base64url in the URL hash (`#/...`). Links require schema version 1 and the canonical `#/` hash form. State changes rewrite the hash, and the board restores from it on load or `hashchange`. Links are capped at 75,000 UTF-8 bytes so a generated link can always be decoded. If the URL gets too long or the browser refuses the update, a visible warning explains; unreadable links are preserved with a reason and a "Start empty" option. Copy link rebuilds the canonical URL from current state.
 
 See [APP_FLOW.md](./APP_FLOW.md) for the flow diagram and module layout.
 

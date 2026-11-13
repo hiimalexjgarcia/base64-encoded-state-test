@@ -8,7 +8,10 @@ import {
   noteEl,
 } from './support/appHarness';
 import { NOTE_VALIDATION } from '../src/notes/model';
-import { decodeState } from '../src/persistence/urlCodec';
+import { decodeStateDetailed } from '../src/persistence/urlCodec';
+
+const decodeTitle = (encoded: string): string | undefined =>
+  decodeStateDetailed(encoded).state.notes[0]?.title;
 
 afterEach(cleanupApp);
 
@@ -59,7 +62,7 @@ describe('copy link', () => {
     const encoded = copied.replace(/^.*#\/?/, '');
 
     expect(store.getNotes()[0].title).toBe('Unsaved');
-    expect(decodeState(encoded).notes[0].title).toBe('Unsaved');
+    expect(decodeTitle(encoded)).toBe('Unsaved');
   });
 
   it('does not copy the link while the open draft is invalid', async () => {
@@ -139,7 +142,7 @@ describe('copy link', () => {
 
     expect(copied).toBe(`${window.location.origin}/#/${store.getEncoded()}`);
     expect(copied).not.toBe(staleUrl);
-    expect(decodeState(encoded).notes[0].title).toBe('After');
+    expect(decodeTitle(encoded)).toBe('After');
   });
 });
 

@@ -32,8 +32,7 @@ const DECODE_FAILURE_MESSAGES: Record<DecodeFailureReason, string> = {
   'invalid-shape':
     'This link does not contain recognisable note data.',
   'unsupported-version':
-    'This link was created by a newer version of the app and cannot be ' +
-    'opened here.',
+    'This link uses an unsupported schema version and cannot be opened here.',
 };
 
 type UrlWarningKind = 'length' | 'replace' | 'budget' | null;

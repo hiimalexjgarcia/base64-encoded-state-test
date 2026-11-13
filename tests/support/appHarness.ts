@@ -34,15 +34,12 @@ const setReadyState = (state: DocumentReadyState): void => {
   });
 };
 
-/** Boots the app with the canonical `#/<encoded>` hash format. */
-export const loadApp = (encoded = ''): AppHarness => loadAppWithHash(`/${encoded}`);
-
-/** Boots the app with a raw hash body so non-canonical links can be tested. */
-export const loadAppWithHash = (hash: string): AppHarness => {
+/** Boots the app at the canonical `#/<encoded>` URL. */
+export const loadApp = (encoded = ''): AppHarness => {
   cleanupApp();
   renderPage();
   setReadyState('complete');
-  window.history.replaceState(null, '', `/#${hash}`);
+  window.history.replaceState(null, '', `/#/${encoded}`);
 
   const store = createNoteStore();
   const app = bootstrap(store);

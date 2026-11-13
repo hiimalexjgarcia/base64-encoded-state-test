@@ -1,13 +1,12 @@
 import {
   encodeState,
-  decodeState,
   decodeStateDetailed,
   generateId,
   isStateWithinBudget,
   MAX_ENCODED_LENGTH,
   MAX_STATE_BYTES,
 } from './urlCodec';
-import { Note, NOTE_VALIDATION } from '../notes/model';
+import { AppState, Note, NOTE_VALIDATION } from '../notes/model';
 
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
   id: 'test-id',
@@ -18,6 +17,8 @@ const makeNote = (overrides: Partial<Note> = {}): Note => ({
 
 const toBase64Url = (json: string): string =>
   btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+const decode = (encoded: string): AppState => decodeStateDetailed(encoded).state;
 
 describe('urlCodec', () => {
   describe('encodeState', () => {
@@ -36,7 +37,7 @@ describe('urlCodec', () => {
     it('omits falsy optional fields', () => {
       const note = makeNote({ completed: undefined, pinned: undefined, color: undefined, body: '' });
 
-      expect(decodeState(encodeState({ notes: [note] })).notes[0]).toEqual({
+      expect(decode(encodeState({ notes: [note] })).notes[0]).toEqual({
         id: 'test-id',
         title: 'Test Title',
         body: '',
@@ -46,29 +47,30 @@ describe('urlCodec', () => {
     it('includes all optional fields when set', () => {
       const note = makeNote({ completed: true, pinned: true, color: 'blue' });
 
-      expect(decodeState(encodeState({ notes: [note] })).notes[0]).toEqual(note);
+      expect(decode(encodeState({ notes: [note] })).notes[0]).toEqual(note);
     });
   });
 
-  describe('decodeState', () => {
+  describe('decoding', () => {
     it('returns empty notes for an empty string', () => {
-      expect(decodeState('')).toEqual({ notes: [] });
+      expect(decode('')).toEqual({ notes: [] });
     });
 
     it('returns empty notes for invalid base64url', () => {
-      expect(decodeState('invalid-base64!!')).toEqual({ notes: [] });
+      expect(decode('invalid-base64!!')).toEqual({ notes: [] });
     });
 
     it('returns empty notes for non-object JSON', () => {
-      expect(decodeState(toBase64Url('"just a string"'))).toEqual({ notes: [] });
+      expect(decode(toBase64Url('"just a string"'))).toEqual({ notes: [] });
     });
 
     it('returns empty notes for valid JSON without a notes array', () => {
-      expect(decodeState(toBase64Url('{"x":1}'))).toEqual({ notes: [] });
+      expect(decode(toBase64Url('{"x":1}'))).toEqual({ notes: [] });
     });
 
     it('drops invalid notes but keeps valid ones', () => {
       const encoded = toBase64Url(JSON.stringify({
+        v: 1,
         n: [
           { i: 'good-id', t: 'Good' },
           { t: 'missing id' },
@@ -76,14 +78,14 @@ describe('urlCodec', () => {
           'not-an-object',
         ],
       }));
-      const decoded = decodeState(encoded);
+      const decoded = decode(encoded);
 
       expect(decoded.notes).toHaveLength(1);
       expect(decoded.notes[0].id).toBe('good-id');
     });
 
     it('rejects oversized encoded input without parsing it', () => {
-      expect(decodeState('a'.repeat(MAX_ENCODED_LENGTH + 1))).toEqual({ notes: [] });
+      expect(decode('a'.repeat(MAX_ENCODED_LENGTH + 1))).toEqual({ notes: [] });
     });
 
     it('reports why a non-empty link failed', () => {
@@ -98,8 +100,11 @@ describe('urlCodec', () => {
     });
 
     it('ignores unknown color values', () => {
-      const encoded = toBase64Url(JSON.stringify({ n: [{ i: 'id-1', t: 'Title', k: 'chartreuse' }] }));
-      const decoded = decodeState(encoded);
+      const encoded = toBase64Url(JSON.stringify({
+        v: 1,
+        n: [{ i: 'id-1', t: 'Title', k: 'chartreuse' }],
+      }));
+      const decoded = decode(encoded);
 
       expect(decoded.notes).toHaveLength(1);
       expect(decoded.notes[0].color).toBeUndefined();
@@ -107,6 +112,7 @@ describe('urlCodec', () => {
 
     it('drops duplicate ids, keeping the first occurrence', () => {
       const encoded = toBase64Url(JSON.stringify({
+        v: 1,
         n: [
           { i: 'same', t: 'First' },
           { i: 'same', t: 'Second' },
@@ -114,13 +120,13 @@ describe('urlCodec', () => {
         ],
       }));
 
-      expect(decodeState(encoded).notes.map((n) => n.title)).toEqual(['First', 'Other']);
+      expect(decode(encoded).notes.map((n) => n.title)).toEqual(['First', 'Other']);
     });
 
     it('rejects an unsupported schema version', () => {
       const encoded = toBase64Url(JSON.stringify({ v: 2, n: [{ i: 'id-1', t: 'Future' }] }));
 
-      expect(decodeState(encoded)).toEqual({ notes: [] });
+      expect(decode(encoded)).toEqual({ notes: [] });
     });
 
     it('encodes the current schema version', () => {
@@ -186,7 +192,7 @@ describe('urlCodec', () => {
       const encoded = encodeState(state);
       expect(encoded.length).toBeGreaterThan(0);
       expect(encoded.length).toBeLessThanOrEqual(MAX_ENCODED_LENGTH);
-      expect(decodeState(encoded)).toEqual(state);
+      expect(decode(encoded)).toEqual(state);
     });
 
     it('refuses to emit a link that the decoder would reject', () => {
@@ -226,7 +232,7 @@ describe('urlCodec', () => {
         }),
       ];
 
-      expect(decodeState(encodeState({ notes })).notes).toEqual(notes);
+      expect(decode(encodeState({ notes })).notes).toEqual(notes);
     });
 
     it('preserves unicode text', () => {
@@ -234,29 +240,26 @@ describe('urlCodec', () => {
         makeNote({ id: 'u1', title: 'Привет мир 🌍', body: '日本語のテキスト' }),
       ];
 
-      expect(decodeState(encodeState({ notes })).notes).toEqual(notes);
+      expect(decode(encodeState({ notes })).notes).toEqual(notes);
     });
 
-    it('decodes a legacy link without color or body keys', () => {
-      const encoded = toBase64Url(JSON.stringify({ n: [{ i: 'legacy-1', t: 'Legacy', c: 1, p: 1 }] }));
-      const decoded = decodeState(encoded);
+    it('rejects a link without a schema version', () => {
+      const encoded = toBase64Url(JSON.stringify({ n: [{ i: 'old-1', t: 'Old' }] }));
 
-      expect(decoded.notes).toHaveLength(1);
-      expect(decoded.notes[0]).toEqual({
-        id: 'legacy-1',
-        title: 'Legacy',
-        body: '',
-        completed: true,
-        pinned: true,
+      expect(decodeStateDetailed(encoded)).toEqual({
+        state: { notes: [] },
+        error: 'unsupported-version',
       });
-      expect(decoded.notes[0].color).toBeUndefined();
     });
 
-    it('handles base64url padding variants', () => {
-      const notes: Note[] = [makeNote()];
-      const encoded = encodeState({ notes });
+    it('rejects padded base64url input', () => {
+      const encoded = encodeState({ notes: [makeNote()] });
+      const padded = encoded + '='.repeat((4 - encoded.length % 4) % 4);
 
-      expect(decodeState(encoded)).toEqual(decodeState(encoded.replace(/=+$/, '')));
+      expect(decodeStateDetailed(padded)).toEqual({
+        state: { notes: [] },
+        error: 'invalid-encoding',
+      });
     });
   });
 

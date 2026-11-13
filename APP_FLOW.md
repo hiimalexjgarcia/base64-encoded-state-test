@@ -51,7 +51,7 @@ graph TD
 
 ## Behavior Notes
 
-- **URL state**: schema `v: 1`; compact keys `i`/`t`/`b`/`c`/`p`/`k`; links without `v` are treated as v1. Duplicate ids are dropped, and unknown versions or malformed input are rejected.
+- **URL state**: schema `v: 1` is required; compact keys `i`/`t`/`b`/`c`/`p`/`k`. Links use the canonical `#/...` hash and the base64url alphabet; duplicate ids, padding, missing versions, unknown versions, and malformed input are rejected.
 - **Budgets**: the payload is capped at 75,000 UTF-8 bytes, which guarantees a link at or below the 100,000-character decode limit. Rejected mutations leave the board unchanged and report `invalid` or `budget`.
 - **Editing**: state-change renders re-mount the active `EditDraft`; actions outside the editor commit the draft first. An invalid or over-budget draft cancels the action and keeps the editor open.
 - **Ordering**: pinned notes sort first, with relative order preserved; completed notes are hidden unless "Show completed" is enabled.

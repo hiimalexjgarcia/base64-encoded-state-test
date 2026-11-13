@@ -4,7 +4,6 @@ import {
   cleanupApp,
   hashFor,
   loadApp,
-  loadAppWithHash,
   makeNote,
   noteEl,
   typeKey,
@@ -61,7 +60,8 @@ describe('app bootstrap', () => {
     loadApp(encoded);
 
     expect(window.location.hash).toBe(`#/${encoded}`);
-    expect(document.getElementById('decodeWarning')?.textContent).toMatch(/newer version/i);
+    expect(document.getElementById('decodeWarning')?.textContent)
+      .toMatch(/unsupported schema version/i);
   });
 
   it('explains an oversized link without erasing it', () => {
@@ -70,14 +70,6 @@ describe('app bootstrap', () => {
 
     expect(window.location.hash).toBe(`#/${oversized}`);
     expect(document.getElementById('decodeWarning')?.textContent).toMatch(/too long/i);
-  });
-
-  it('loads state from a hash without the #/ prefix', () => {
-    const encoded = hashFor([makeNote({ id: 'z', title: 'No prefix' })]);
-    const { store } = loadAppWithHash(encoded);
-
-    expect(store.getNotes().map((n) => n.id)).toEqual(['z']);
-    expect(noteEl('z')?.querySelector('.note-title')?.textContent).toBe('No prefix');
   });
 
   it('reloads state on hashchange', () => {
@@ -105,15 +97,15 @@ describe('app bootstrap', () => {
     expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes yet');
   });
 
-  it('reloads state from a hashchange without the #/ prefix', () => {
+  it('ignores a hash without the #/ prefix', () => {
     const { store } = loadApp('');
     const encoded = hashFor([makeNote({ id: 'z', title: 'Changed' })]);
 
     window.history.replaceState(null, '', `/#${encoded}`);
     window.dispatchEvent(new Event('hashchange'));
 
-    expect(store.getNotes().map((n) => n.id)).toEqual(['z']);
-    expect(noteEl('z')?.querySelector('.note-title')?.textContent).toBe('Changed');
+    expect(store.getNotes()).toEqual([]);
+    expect(document.querySelector('#notes .note')).toBeNull();
   });
 
   it('hides completed notes by default', () => {

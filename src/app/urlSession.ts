@@ -22,11 +22,14 @@ export const buildCanonicalUrl = (encoded: string): string => {
 };
 
 /**
- * Reads the encoded state from the hash. Accepts both `#/<state>` (the
- * canonical format this app writes) and `#<state>`, rather than assuming
- * the two-character prefix and chopping data off a hand-edited URL.
+ * Reads the encoded state from the canonical `#/<state>` hash. Other hash
+ * formats are not treated as application state.
  */
-export const readHash = (): string => window.location.hash.replace(/^#\/?/, '');
+export const readHash = (): string => {
+  const { hash } = window.location;
+
+  return hash.startsWith('#/') ? hash.slice(2) : '';
+};
 
 export interface UrlSessionDeps {
   store: NoteStore;

@@ -19,6 +19,13 @@ All notable changes to this project are documented here. The format follows
 - Simplified `README.md` and `APP_FLOW.md`; the flow diagram now lives only in
   `APP_FLOW.md`.
 
+### Removed
+
+- Backwards compatibility for versionless URL payloads and non-canonical
+  `#state` hashes. Links must use schema `v: 1` and the canonical `#/...` form.
+- Support for padded or non-base64url encoded input.
+- The duplicate `decodeState` wrapper; callers use `decodeStateDetailed`.
+
 ## [0.1.1] - 2026-11-12
 
 ### Added

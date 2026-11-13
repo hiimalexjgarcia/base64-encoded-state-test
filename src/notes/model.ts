@@ -59,8 +59,8 @@ export const validateNote = (note: unknown): note is Note => {
 
 /**
  * Ensures a note has the required fields the rest of the app relies on.
- * Notes decoded from older links may omit `body`; store it as an empty
- * string instead of leaking `undefined` into rendering or encoding.
+ * Compact URL state omits an empty `body`; store it as an empty string instead
+ * of leaking `undefined` into rendering or encoding.
  * Callers must validate the note first.
  */
 export const normalizeNote = (note: Note): Note =>
