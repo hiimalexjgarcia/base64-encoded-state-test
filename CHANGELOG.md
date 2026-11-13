@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.3.0] - 2026-11-13
+
+### Changed
+
+- Renamed the app to **Linkboard**. The page title, social metadata, package
+  name, and window-level draft guard globals use the new name. Share links and
+  URL-state handling are unchanged.
+
 ## [0.2.1] - 2026-11-12
 
 ### Changed

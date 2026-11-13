@@ -1,10 +1,10 @@
-# Sticky Notes Corkboard
+# Linkboard
 
 [![Netlify Status](https://api.netlify.com/api/v1/badges/671744ae-7c50-4f77-8c10-224ffadd9a1a/deploy-status)](https://app.netlify.com/projects/vigorous-wilson-ce6cfa/deploys)
 
-A vanilla TypeScript sticky-note corkboard that keeps all state in the URL hash, so sharing the link shares the board.
+A vanilla TypeScript sticky-note board that keeps all state in the URL hash, so sharing the link shares the board.
 
-![Sticky Notes corkboard](./docs/screenshot.png)
+![Linkboard corkboard with colorful sticky notes](./docs/screenshot.png)
 
 ## Features
 
@@ -48,7 +48,7 @@ The build is static, so any static host works. For Netlify, connect the reposito
 
 ## Release notes
 
-See [CHANGELOG.md](./CHANGELOG.md). The current release is `v0.2.1`.
+See [CHANGELOG.md](./CHANGELOG.md). The current release is `v0.3.0`.
 
 ## License
 

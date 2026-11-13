@@ -48,6 +48,6 @@ describe('index.html', () => {
     expect(doc.querySelector('meta[name="twitter:card"]')?.getAttribute('content'))
       .toBe('summary_large_image');
     expect(doc.querySelector('meta[property="og:title"]')?.getAttribute('content'))
-      .toContain('Sticky Notes');
+      .toContain('Linkboard');
   });
 });

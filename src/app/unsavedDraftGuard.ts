@@ -5,9 +5,9 @@
  */
 
 interface DraftGuardWindow extends Window {
-  stickyNotesDraftGuardInstalled?: boolean;
-  stickyNotesHasUnsavedDraft?: () => boolean;
-  stickyNotesDraftGuardHandler?: (event: BeforeUnloadEvent) => void;
+  linkboardDraftGuardInstalled?: boolean;
+  linkboardHasUnsavedDraft?: () => boolean;
+  linkboardDraftGuardHandler?: (event: BeforeUnloadEvent) => void;
 }
 
 export interface UnsavedDraftGuard {
@@ -18,12 +18,12 @@ export const createUnsavedDraftGuard = (
   hasUnsavedDraft: () => boolean,
 ): UnsavedDraftGuard => {
   const guardWindow = window as DraftGuardWindow;
-  guardWindow.stickyNotesHasUnsavedDraft = hasUnsavedDraft;
+  guardWindow.linkboardHasUnsavedDraft = hasUnsavedDraft;
 
-  if (!guardWindow.stickyNotesDraftGuardInstalled) {
-    guardWindow.stickyNotesDraftGuardInstalled = true;
+  if (!guardWindow.linkboardDraftGuardInstalled) {
+    guardWindow.linkboardDraftGuardInstalled = true;
     const handler = (event: BeforeUnloadEvent): void => {
-      if (!guardWindow.stickyNotesHasUnsavedDraft?.()) {
+      if (!guardWindow.linkboardHasUnsavedDraft?.()) {
         return;
       }
       event.preventDefault();
@@ -31,21 +31,21 @@ export const createUnsavedDraftGuard = (
       // native "leave site?" confirmation.
       event.returnValue = '';
     };
-    guardWindow.stickyNotesDraftGuardHandler = handler;
+    guardWindow.linkboardDraftGuardHandler = handler;
     window.addEventListener('beforeunload', handler);
   }
 
   return {
     destroy: (): void => {
-      if (guardWindow.stickyNotesHasUnsavedDraft === hasUnsavedDraft) {
-        guardWindow.stickyNotesHasUnsavedDraft = undefined;
+      if (guardWindow.linkboardHasUnsavedDraft === hasUnsavedDraft) {
+        guardWindow.linkboardHasUnsavedDraft = undefined;
       }
-      const handler = guardWindow.stickyNotesDraftGuardHandler;
+      const handler = guardWindow.linkboardDraftGuardHandler;
       // Only tear down the shared listener when this app still owns it.
-      if (handler && !guardWindow.stickyNotesHasUnsavedDraft) {
+      if (handler && !guardWindow.linkboardHasUnsavedDraft) {
         window.removeEventListener('beforeunload', handler);
-        guardWindow.stickyNotesDraftGuardHandler = undefined;
-        guardWindow.stickyNotesDraftGuardInstalled = false;
+        guardWindow.linkboardDraftGuardHandler = undefined;
+        guardWindow.linkboardDraftGuardInstalled = false;
       }
     },
   };

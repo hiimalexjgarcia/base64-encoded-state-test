@@ -1,7 +1,7 @@
 {
-  "name": "sticky-notes-corkboard",
-  "version": "0.2.1",
-  "description": "A vanilla TypeScript sticky-notes corkboard that stores all state in the URL hash.",
+  "name": "linkboard",
+  "version": "0.3.0",
+  "description": "A vanilla TypeScript sticky-note board that stores all state in the URL hash.",
   "private": true,
   "scripts": {
     "dev": "vite",
