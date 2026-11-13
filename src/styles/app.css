@@ -411,4 +411,14 @@ input[type="search"]::placeholder {
     }
 }
 
+/*
+ * Keep this last. The `hidden` attribute shows/hides controls (for example
+ * "Clear completed"), but component rules such as `.btn { display:
+ * inline-block }` would otherwise override the user-agent's
+ * `[hidden] { display: none }`.
+ */
+[hidden] {
+    display: none !important;
+}
+
 

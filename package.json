@@ -1,6 +1,6 @@
 {
   "name": "linkboard",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A vanilla TypeScript sticky-note board that stores all state in the URL hash.",
   "private": true,
   "scripts": {

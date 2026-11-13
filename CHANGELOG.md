@@ -4,6 +4,14 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.3.4] - 2026-11-13
+
+### Fixed
+
+- "Clear completed" is now actually hidden when "Show completed" is
+  unchecked. The `hidden` attribute was being overridden by the button's
+  `display: inline-block` rule; a final `[hidden]` rule now wins.
+
 ## [0.3.3] - 2026-11-13
 
 ### Changed
