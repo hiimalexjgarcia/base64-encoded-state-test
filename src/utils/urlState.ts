@@ -31,6 +31,28 @@ const URL_STATE_VERSION = 1 as const;
  */
 export const MAX_ENCODED_LENGTH = 100_000;
 
+/**
+ * Upper bound for the compact JSON payload in UTF-8 bytes. base64 expands
+ * three bytes to four characters, so 75,000 bytes encode to at most 100,000
+ * characters — exactly the decode ceiling above. Keeping the write budget in
+ * bytes (rather than JavaScript string length) means multi-byte text cannot
+ * produce a link that the decoder later rejects.
+ */
+export const MAX_STATE_BYTES = Math.floor(MAX_ENCODED_LENGTH / 4 * 3);
+
+export type DecodeFailureReason =
+  | 'too-long'
+  | 'invalid-encoding'
+  | 'invalid-json'
+  | 'invalid-shape'
+  | 'unsupported-version';
+
+export interface DecodeResult {
+  state: AppState;
+  /** Null when the input was empty or decoded successfully. */
+  error: DecodeFailureReason | null;
+}
+
 const uint8ToBase64 = (uint8: Uint8Array): string => {
   let binary = '';
   for (let i = 0; i < uint8.length; i++) {
@@ -123,41 +145,94 @@ const expandState = (compact: unknown): AppState => {
 };
 
 /**
+ * Encodes the compact state to UTF-8 bytes. Shared by the size-budget check
+ * and the encoder so the two always measure the same payload.
+ */
+const compactStateBytes = (state: AppState): Uint8Array =>
+  new TextEncoder().encode(JSON.stringify(compactState(state)));
+
+/**
+ * Returns true when the board's compact JSON payload fits within the write
+ * budget. AppState refuses mutations that would exceed this, so the app can
+ * never generate a link that decodeState would reject.
+ */
+export const isStateWithinBudget = (state: AppState): boolean => {
+  try {
+    if (!state?.notes?.length) {
+      return true;
+    }
+
+    return compactStateBytes(state).length <= MAX_STATE_BYTES;
+  } catch {
+    return false;
+  }
+};
+
+/**
  * Encodes application state to a URL-safe string
  */
 export const encodeState = (state: AppState): string => {
   try {
     if (!state?.notes?.length) {return '';}
-    const json = JSON.stringify(compactState(state));
-    const bytes = new TextEncoder().encode(json);
+    const bytes = compactStateBytes(state);
+    // Defensive: AppState enforces the budget before committing a change, but
+    // returning an unreadable link is never an acceptable fallback.
+    if (bytes.length > MAX_STATE_BYTES) {return '';}
 
-    return toBase64Url(uint8ToBase64(bytes));
+    const encoded = toBase64Url(uint8ToBase64(bytes));
+
+    return encoded.length <= MAX_ENCODED_LENGTH ? encoded : '';
   } catch {
     return '';
   }
 };
 
 /**
- * Decodes a URL-safe string to application state
+ * Decodes a URL-safe string and reports why a non-empty link failed.
  */
-export const decodeState = (encoded: string): AppState => {
-  if (!encoded || typeof encoded !== 'string') {return { notes: [] };}
-  if (encoded.length > MAX_ENCODED_LENGTH) {return { notes: [] };}
-  try {
-    const json = new TextDecoder().decode(base64ToUint8(fromBase64Url(encoded)));
-    const data = JSON.parse(json);
-    if (!data || typeof data !== 'object' || !Array.isArray(data.n)) {
-      return { notes: [] };
-    }
-    // Links written before the version field are implicitly v1.
-    if (data.v !== undefined && data.v !== URL_STATE_VERSION) {
-      return { notes: [] };
-    }
-
-    return expandState(data);
-  } catch {
-    return { notes: [] };
+export const decodeStateDetailed = (encoded: string): DecodeResult => {
+  const empty: AppState = { notes: [] };
+  if (!encoded || typeof encoded !== 'string') {
+    return { state: empty, error: null };
   }
+  if (encoded.length > MAX_ENCODED_LENGTH) {
+    return { state: empty, error: 'too-long' };
+  }
+
+  let json: string;
+  try {
+    json = new TextDecoder().decode(base64ToUint8(fromBase64Url(encoded)));
+  } catch {
+    return { state: empty, error: 'invalid-encoding' };
+  }
+
+  let data: unknown;
+  try {
+    data = JSON.parse(json);
+  } catch {
+    return { state: empty, error: 'invalid-json' };
+  }
+
+  if (!data || typeof data !== 'object') {
+    return { state: empty, error: 'invalid-shape' };
+  }
+  const compact = data as { n?: unknown; v?: unknown };
+  if (!Array.isArray(compact.n)) {
+    return { state: empty, error: 'invalid-shape' };
+  }
+  // Links written before the version field are implicitly v1.
+  if (compact.v !== undefined && compact.v !== URL_STATE_VERSION) {
+    return { state: empty, error: 'unsupported-version' };
+  }
+
+  return { state: expandState(compact), error: null };
 };
+
+/**
+ * Decodes a URL-safe string to application state. Use decodeStateDetailed
+ * when the reason for a failure needs to be shown to the user.
+ */
+export const decodeState = (encoded: string): AppState =>
+  decodeStateDetailed(encoded).state;
 
 export const generateId = (): string => nanoid();

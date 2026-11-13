@@ -8,6 +8,11 @@ import {
   randomColor,
 } from './utils/view';
 import { Note, NOTE_VALIDATION } from './types';
+import {
+  decodeStateDetailed,
+  isStateWithinBudget,
+  DecodeFailureReason,
+} from './utils/urlState';
 import './index.css';
 
 interface EditDraft {
@@ -23,14 +28,24 @@ interface EditDraft {
 // rebuild the board without discarding unsaved text.
 let editDraft: EditDraft | null = null;
 
+// True while an invalid incoming link is being handled. The state must reset
+// to an empty board without rewriting the address bar, so the user's original
+// (possibly recoverable) link is preserved.
+let suppressUrlSync = false;
+let decodeFailure: DecodeFailureReason | null = null;
+
 // Shareable-link warning threshold in characters. Browsers cap URLs
 // (Safari ~80k), and long links break in chat apps and email clients.
 const URL_LENGTH_WARN_THRESHOLD = 16_000;
 
 const URL_WARNING_ID = 'urlWarning';
 
-type UrlWarningKind = 'length' | 'replace' | null;
+type UrlWarningKind = 'length' | 'replace' | 'budget' | null;
 let urlWarningKind: UrlWarningKind = null;
+
+const SHARE_URL_TOO_LARGE_MESSAGE =
+  'This board is too large to fit in a shareable link. Remove some notes or ' +
+  'shorten their text before adding more.';
 
 const showUrlWarning = (message: string): void => {
   let warning = document.getElementById(URL_WARNING_ID);
@@ -52,11 +67,83 @@ const clearUrlWarning = (): void => {
   urlWarningKind = null;
 };
 
-const syncStateToUrl = (): void => {
+const showBudgetWarning = (): void => {
+  if (urlWarningKind !== 'budget') {
+    urlWarningKind = 'budget';
+    showUrlWarning(SHARE_URL_TOO_LARGE_MESSAGE);
+  }
+};
+
+const DECODE_WARNING_ID = 'decodeWarning';
+
+const DECODE_FAILURE_MESSAGES: Record<DecodeFailureReason, string> = {
+  'too-long':
+    'This link is too long to open safely. It may have been truncated when ' +
+    'it was shared.',
+  'invalid-encoding':
+    'This link’s note data is not valid base64url, so it cannot be read.',
+  'invalid-json':
+    'This link’s note data is corrupt or truncated, so it cannot be read.',
+  'invalid-shape':
+    'This link does not contain recognisable note data.',
+  'unsupported-version':
+    'This link was created by a newer version of the app and cannot be ' +
+    'opened here.',
+};
+
+const showDecodeWarning = (reason: DecodeFailureReason): void => {
+  let warning = document.getElementById(DECODE_WARNING_ID);
+  if (!warning) {
+    warning = document.createElement('div');
+    warning.id = DECODE_WARNING_ID;
+    warning.className = 'url-warning decode-warning';
+    warning.setAttribute('role', 'alert');
+    document.body.appendChild(warning);
+  }
+
+  warning.innerHTML = '';
+  const text = document.createElement('span');
+  text.textContent =
+    `${DECODE_FAILURE_MESSAGES[reason]} The original link is unchanged — ` +
+    'your notes were not deleted.';
+  const startEmpty = document.createElement('button');
+  startEmpty.type = 'button';
+  startEmpty.textContent = 'Start empty';
+  startEmpty.addEventListener('click', startEmptyBoard);
+  warning.appendChild(text);
+  warning.appendChild(startEmpty);
+};
+
+const clearDecodeWarning = (): void => {
+  document.getElementById(DECODE_WARNING_ID)?.remove();
+};
+
+/**
+ * The canonical share URL is always rebuilt from the current state rather
+ * than read back from window.location.href. The address bar may be stale
+ * when history.replaceState failed, and the copied link must still contain
+ * the notes the user can see.
+ */
+const buildCanonicalUrl = (encoded: string = AppState.state.getEncoded()): string => {
   const path = document.location.pathname || '/';
-  // Preserve query parameters (e.g. analytics or campaign tags) instead of
-  // replacing the whole URL with pathname + hash.
-  const url = path + (document.location.search || '') + '#/' + AppState.state.getEncoded();
+  // Preserve query parameters (e.g. analytics or campaign tags).
+  const search = document.location.search || '';
+
+  return `${window.location.origin}${path}${search}#/${encoded}`;
+};
+
+const syncStateToUrl = (): void => {
+  const state = AppState.state.get();
+  const encoded = AppState.state.getEncoded();
+  if (state.notes.length > 0 && !encoded) {
+    // AppState enforces the budget, but never write an empty hash over a
+    // board that still has notes if encoding somehow fails.
+    showBudgetWarning();
+
+    return;
+  }
+
+  const url = buildCanonicalUrl(encoded);
 
   try {
     window.history.replaceState(null, '', url);
@@ -409,6 +496,22 @@ function renderAllNotes({ preserveEdit = true }: RenderOptions = {}): void {
 }
 
 AppState.pubsub.subscribe('appStateChanged', () => {
+  if (suppressUrlSync) {
+    // An unreadable incoming link is being replaced with an empty board.
+    // Render it without rewriting the address bar so the original hash stays
+    // available for the user to inspect or recover.
+    renderAllNotes();
+
+    return;
+  }
+
+  // Once the user changes state, the preserved invalid link is no longer the
+  // source of truth and its warning has served its purpose.
+  if (decodeFailure) {
+    decodeFailure = null;
+    clearDecodeWarning();
+  }
+
   syncStateToUrl();
   renderAllNotes();
 });
@@ -657,6 +760,20 @@ const saveInlineEdit = (noteEl: HTMLElement, id: string): boolean => {
     return false;
   }
 
+  const nextNotes = AppState.notes.getAll().map((note) => {
+    return note.id === id ? updated : note;
+  });
+  if (!isStateWithinBudget({ notes: nextNotes })) {
+    showEditError(
+      noteEl,
+      'This edit would make the board too large to fit in a shareable link. ' +
+      'Shorten the note or remove another note first.',
+    );
+    titleInput?.focus();
+
+    return false;
+  }
+
   endEdit();
   AppState.notes.update(updated);
   focusNoteControl(id);
@@ -684,6 +801,11 @@ const addNote = (): void => {
     body: '',
     color: randomColor(),
   };
+  if (!isStateWithinBudget({ notes: [...AppState.notes.getAll(), note] })) {
+    showBudgetWarning();
+
+    return;
+  }
   AppState.notes.add(note);
   startInlineEdit(note);
 };
@@ -744,7 +866,10 @@ const setupCopyLink = (): void => {
       return;
     }
 
-    const url = window.location.href;
+    // Rebuild the URL from state instead of reading location.href: the
+    // address bar can be stale when replaceState failed, and copying it would
+    // silently share an older board.
+    const url = buildCanonicalUrl();
     try {
       await navigator.clipboard.writeText(url);
       const original = btn.textContent;
@@ -776,17 +901,43 @@ const readHash = (): string => window.location.hash.replace(/^#\/?/, '');
 
 const initializeState = (hash: string): void => {
   if (!hash) {
+    decodeFailure = null;
+    clearDecodeWarning();
+
     return;
   }
 
-  try {
-    AppState.state.setEncoded(hash);
-  } catch (e) {
-    // eslint-disable-next-line no-console
-    console.error('Error initializing state:', e);
-    AppState.state.setEncoded('');
+  const result = decodeStateDetailed(hash);
+  if (result.error) {
+    // Keep the incoming hash exactly as it is. Decoding the failure reason
+    // lets the warning explain what went wrong, and the explicit "Start
+    // empty" action is the only thing that replaces the broken link.
+    decodeFailure = result.error;
+    suppressUrlSync = true;
+    try {
+      AppState.state.setEncoded('');
+    } finally {
+      suppressUrlSync = false;
+    }
+    showDecodeWarning(result.error);
+
+    return;
   }
+
+  decodeFailure = null;
+  clearDecodeWarning();
+  AppState.state.setEncoded(hash);
 };
+
+function startEmptyBoard(): void {
+  decodeFailure = null;
+  clearDecodeWarning();
+  endEdit();
+  hideUndoToast();
+  // Publishing an empty state also syncs the canonical `#/` URL because the
+  // decode-warning suppression has already been lifted.
+  AppState.state.setEncoded('');
+}
 
 const handleHashChange = (): void => {
   // Incoming URL state replaces the board wholesale, so an in-progress
@@ -800,8 +951,51 @@ const handleHashChange = (): void => {
   } else {
     // Clearing the hash drops the shared state instead of keeping the
     // previous board around under a URL that claims to be empty.
+    decodeFailure = null;
+    clearDecodeWarning();
     AppState.state.setEncoded('');
   }
+};
+
+const hasUnsavedDraft = (): boolean => {
+  const draft = editDraft;
+  if (!draft) {
+    return false;
+  }
+
+  const saved = AppState.notes.getAll().find((note) => note.id === draft.id);
+  if (!saved) {
+    return true;
+  }
+
+  return draft.title !== saved.title || draft.body !== saved.body;
+};
+
+interface DraftGuardWindow extends Window {
+  stickyNotesDraftGuardInstalled?: boolean;
+  stickyNotesHasUnsavedDraft?: () => boolean;
+}
+
+const setupUnloadGuard = (): void => {
+  const guardWindow = window as DraftGuardWindow;
+  // The guard reads the latest app instance through a window property. That
+  // keeps a single listener installed across hot reloads and test module
+  // resets instead of piling up stale closures.
+  guardWindow.stickyNotesHasUnsavedDraft = hasUnsavedDraft;
+  if (guardWindow.stickyNotesDraftGuardInstalled) {
+    return;
+  }
+  guardWindow.stickyNotesDraftGuardInstalled = true;
+
+  window.addEventListener('beforeunload', (event) => {
+    if (!guardWindow.stickyNotesHasUnsavedDraft?.()) {
+      return;
+    }
+    event.preventDefault();
+    // Browsers require a truthy/empty returnValue assignment to show the
+    // native "leave site?" confirmation.
+    event.returnValue = '';
+  });
 };
 
 const initializeApp = (): void => {
@@ -812,6 +1006,7 @@ const initializeApp = (): void => {
   setupClearCompleted();
   setupShowCompleted();
   setupKeyboardShortcuts();
+  setupUnloadGuard();
   window.addEventListener('hashchange', handleHashChange, false);
   renderAllNotes();
 };

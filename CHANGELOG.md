@@ -4,6 +4,36 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.1.1] - 2026-11-12
+
+### Added
+
+- A total-state byte budget (`MAX_STATE_BYTES`, 75,000 UTF-8 bytes) that is
+  checked before state changes commit, so every generated link fits within the
+  100,000-character decode limit.
+- `decodeStateDetailed` with explicit failure reasons (`too-long`,
+  `invalid-encoding`, `invalid-json`, `invalid-shape`, `unsupported-version`).
+- A recovery banner for unreadable links that keeps the original hash, explains
+  why it could not be opened, and offers an explicit "Start empty" action.
+- An unsaved-draft guard that triggers the browser's `beforeunload`
+  confirmation when an inline edit differs from the saved note.
+
+### Changed
+
+- Copy link now rebuilds the canonical URL from current state instead of
+  reading `window.location.href`, so it remains correct when `replaceState`
+  failed and the address bar is stale.
+- Adding or saving a note that would exceed the URL budget keeps the editor or
+  board unchanged and shows a visible size warning.
+- URL sync and copy-link share one canonical URL builder that preserves the
+  current pathname and query string.
+
+### Fixed
+
+- Oversized boards can no longer produce links that the decoder rejects.
+- Invalid, truncated, oversized, and unknown-version hashes are no longer
+  silently rewritten to an empty board.
+
 ## [0.1.0] - 2026-11-10
 
 ### Added

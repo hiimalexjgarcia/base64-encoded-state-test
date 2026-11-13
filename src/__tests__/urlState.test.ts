@@ -1,5 +1,13 @@
-import { encodeState, decodeState, generateId, MAX_ENCODED_LENGTH } from '../utils/urlState';
-import { Note } from '../types';
+import {
+  encodeState,
+  decodeState,
+  decodeStateDetailed,
+  generateId,
+  isStateWithinBudget,
+  MAX_ENCODED_LENGTH,
+  MAX_STATE_BYTES,
+} from '../utils/urlState';
+import { Note, NOTE_VALIDATION } from '../types';
 
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
   id: 'test-id',
@@ -83,6 +91,17 @@ describe('urlState', () => {
       expect(decodeState(oversized)).toEqual({ notes: [] });
     });
 
+    it('should report why a non-empty link failed', () => {
+      expect(decodeStateDetailed('invalid-base64!!')).toEqual({
+        state: { notes: [] },
+        error: 'invalid-encoding',
+      });
+      expect(decodeStateDetailed('')).toEqual({
+        state: { notes: [] },
+        error: null,
+      });
+    });
+
     it('should ignore unknown color values', () => {
       const compact = JSON.stringify({ n: [{ i: 'id-1', t: 'Title', k: 'chartreuse' }] });
       const encoded = btoa(compact).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
@@ -119,6 +138,88 @@ describe('urlState', () => {
       const json = atob(padded);
 
       expect(JSON.parse(json).v).toBe(1);
+    });
+  });
+
+  describe('decodeStateDetailed', () => {
+    const encodeJson = (json: string): string =>
+      btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
+    it('reports an oversized link', () => {
+      expect(decodeStateDetailed('a'.repeat(MAX_ENCODED_LENGTH + 1))).toEqual({
+        state: { notes: [] },
+        error: 'too-long',
+      });
+    });
+
+    it('reports malformed JSON', () => {
+      expect(decodeStateDetailed(encodeJson('{"v":1,"n":['))).toEqual({
+        state: { notes: [] },
+        error: 'invalid-json',
+      });
+    });
+
+    it('reports an invalid payload shape', () => {
+      expect(decodeStateDetailed(encodeJson('{"v":1}'))).toEqual({
+        state: { notes: [] },
+        error: 'invalid-shape',
+      });
+    });
+
+    it('reports an unsupported schema version', () => {
+      expect(decodeStateDetailed(encodeJson('{"v":2,"n":[]}'))).toEqual({
+        state: { notes: [] },
+        error: 'unsupported-version',
+      });
+    });
+
+    it('returns the decoded state without an error on success', () => {
+      const state = { notes: [makeNote()] };
+
+      expect(decodeStateDetailed(encodeState(state))).toEqual({
+        state,
+        error: null,
+      });
+    });
+  });
+
+  describe('size contract', () => {
+    const maxNote = (index: number): Note => ({
+      id: `${index}${'i'.repeat(NOTE_VALIDATION.ID_MAX_LENGTH - 1)}`,
+      title: 'T'.repeat(NOTE_VALIDATION.TITLE_MAX_LENGTH),
+      body: 'x'.repeat(NOTE_VALIDATION.BODY_MAX_LENGTH),
+      completed: true,
+      pinned: true,
+      color: 'yellow',
+    });
+
+    it('round-trips the largest board the per-note limits allow', () => {
+      const notes = Array.from({ length: 7 }, (_, index) => maxNote(index));
+      const state = { notes };
+
+      expect(isStateWithinBudget(state)).toBe(true);
+      const encoded = encodeState(state);
+      expect(encoded.length).toBeGreaterThan(0);
+      expect(encoded.length).toBeLessThanOrEqual(MAX_ENCODED_LENGTH);
+      expect(decodeState(encoded)).toEqual(state);
+    });
+
+    it('refuses to emit a link that the decoder would reject', () => {
+      const notes = Array.from({ length: 8 }, (_, index) => maxNote(index));
+      const state = { notes };
+
+      expect(isStateWithinBudget(state)).toBe(false);
+      expect(encodeState(state)).toBe('');
+    });
+
+    it('measures multi-byte text against the byte budget', () => {
+      // 18,750 four-byte emoji are 75,000 UTF-8 bytes even though the
+      // JavaScript string is half as long.
+      const notes = [makeNote({ id: 'emoji', title: 'Emoji', body: '😀'.repeat(18_750) })];
+
+      expect(isStateWithinBudget({ notes })).toBe(false);
+      expect(encodeState({ notes })).toBe('');
+      expect(MAX_STATE_BYTES).toBe(75_000);
     });
   });
 

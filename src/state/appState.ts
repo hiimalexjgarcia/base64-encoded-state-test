@@ -6,7 +6,7 @@
 import { AppState as AppStateType, Note, EncodedState, IAppState } from '../types';
 import { handleError } from '../utils/errorHandler';
 import { normalizeNote, validateNote } from '../utils/validation';
-import { encodeState, decodeState, generateId } from '../utils/urlState';
+import { encodeState, decodeState, generateId, isStateWithinBudget } from '../utils/urlState';
 
 /**
  * Creates and manages application state with immutable updates
@@ -80,6 +80,17 @@ const createAppState = (): IAppState => {
 
       if (!newState || typeof newState !== 'object') {
         handleError(new Error('Invalid state: must be an object'), {
+          module: 'state',
+          method: 'setState',
+        });
+
+        return;
+      }
+
+      if (!isStateWithinBudget(newState)) {
+        // The URL is the only persistence layer, so a board that cannot be
+        // encoded within the decoder's limit must never become app state.
+        handleError(new Error('State is too large for a shareable URL'), {
           module: 'state',
           method: 'setState',
         });

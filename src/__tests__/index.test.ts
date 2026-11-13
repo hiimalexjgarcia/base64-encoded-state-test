@@ -7,7 +7,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { decodeState, encodeState } from '../utils/urlState';
+import { decodeState, encodeState, MAX_ENCODED_LENGTH } from '../utils/urlState';
 import { Note, NOTE_COLORS, NOTE_VALIDATION } from '../types';
 
 type AppStateInstance = typeof import('../state/appState').default;
@@ -87,11 +87,47 @@ describe('app bootstrap', () => {
     expect(byId('notesDisplayCount').textContent).toBe('0 notes');
   });
 
-  it('treats an undecodable hash as empty state', async () => {
-    const state = await loadApp('!!!not-base64!!!');
+  it('preserves an undecodable hash and offers a start-empty recovery', async () => {
+    const broken = '!!!not-base64!!!';
+    const state = await loadApp(broken);
 
     expect(state.notes.getAll()).toEqual([]);
     expect(document.querySelector('.notes-empty')).not.toBeNull();
+    expect(window.location.hash).toBe(`#/${broken}`);
+
+    const warning = document.getElementById('decodeWarning');
+    expect(warning?.textContent).toMatch(/base64url/i);
+    expect(warning?.textContent).toMatch(/original link is unchanged/i);
+
+    const startEmpty = warning?.querySelector('button');
+    expect(startEmpty?.textContent).toBe('Start empty');
+    startEmpty?.click();
+
+    expect(window.location.hash).toBe('#/');
+    expect(document.getElementById('decodeWarning')).toBeNull();
+  });
+
+  it('explains an unsupported link version without erasing it', async () => {
+    const encoded = btoa(JSON.stringify({ v: 2, n: [] }))
+      .replace(/\+/g, '-')
+      .replace(/\//g, '_')
+      .replace(/=+$/, '');
+    await loadApp(encoded);
+
+    expect(window.location.hash).toBe(`#/${encoded}`);
+    expect(document.getElementById('decodeWarning')?.textContent).toMatch(
+      /newer version/i,
+    );
+  });
+
+  it('explains an oversized link without erasing it', async () => {
+    const oversized = 'a'.repeat(MAX_ENCODED_LENGTH + 1);
+    await loadApp(oversized);
+
+    expect(window.location.hash).toBe(`#/${oversized}`);
+    expect(document.getElementById('decodeWarning')?.textContent).toMatch(
+      /too long/i,
+    );
   });
 
   it('hides completed notes by default', async () => {
@@ -848,6 +884,87 @@ describe('toolbar interactions', () => {
 
     expect(promptSpy).toHaveBeenCalledWith('Copy this link:', window.location.href);
   });
+  it('copies the current query string with the canonical link', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    await loadApp('');
+    window.history.replaceState(null, '', '/?utm=share#/');
+
+    byId<HTMLButtonElement>('copyLinkBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(writeText).toHaveBeenCalledWith(
+      `${window.location.origin}/?utm=share#/`,
+    );
+  });
+
+  it('copies the current state when replaceState failed and the bar is stale', async () => {
+    const writeText = jest.fn().mockResolvedValue(undefined);
+    Object.defineProperty(navigator, 'clipboard', {
+      value: { writeText },
+      configurable: true,
+    });
+    const state = await loadApp(hashFor([makeNote({ id: 'a', title: 'Before' })]));
+    const staleUrl = window.location.href;
+    jest.spyOn(window.history, 'replaceState').mockImplementation(() => {
+      throw new DOMException('blocked', 'SecurityError');
+    });
+
+    state.notes.update({ ...makeNote({ id: 'a', title: 'After' }) });
+    expect(window.location.href).toBe(staleUrl);
+
+    byId<HTMLButtonElement>('copyLinkBtn').click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const copied = writeText.mock.calls[0][0] as unknown as string;
+    const encoded = copied.replace(/^.*#\/?/, '');
+
+    expect(copied).toBe(`${window.location.origin}/#/${state.state.getEncoded()}`);
+    expect(copied).not.toBe(staleUrl);
+    expect(decodeState(encoded).notes[0].title).toBe('After');
+  });
+});
+
+describe('draft unload guard', () => {
+  const fireBeforeUnload = (): Event => {
+    const event = new Event('beforeunload', { cancelable: true });
+    window.dispatchEvent(event);
+
+    return event;
+  };
+
+  it('does not block unload when no draft is dirty', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'Saved' })]));
+
+    expect(fireBeforeUnload().defaultPrevented).toBe(false);
+  });
+
+  it('blocks unload while an edit has unsaved text', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'Saved' })]));
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = 'Unsaved';
+    input.dispatchEvent(new Event('input'));
+
+    expect(fireBeforeUnload().defaultPrevented).toBe(true);
+  });
+
+  it('stops blocking once the draft is saved', async () => {
+    await loadApp(hashFor([makeNote({ id: 'a', title: 'Saved' })]));
+    (noteEl('a')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const input = document.querySelector('.note-title-input') as HTMLInputElement;
+    input.value = 'Saved edit';
+    input.dispatchEvent(new Event('input'));
+    (document.querySelector('.note-actions button[aria-label="Save note"]') as HTMLButtonElement)
+      .click();
+
+    expect(fireBeforeUnload().defaultPrevented).toBe(false);
+  });
 });
 
 describe('keyboard shortcuts', () => {
@@ -926,6 +1043,26 @@ describe('URL length guard', () => {
 
     expect(state.notes.getAll()).toHaveLength(1);
     expect(document.getElementById('urlWarning')?.textContent).toMatch(/address bar/i);
+  });
+
+  it('keeps the editor open when a save would exceed the URL budget', async () => {
+    const notes = Array.from({ length: 8 }, (_, index) => makeNote({
+      id: `n${index}`,
+      title: 'T',
+      body: 'x'.repeat(9_300),
+    }));
+    const state = await loadApp(hashFor(notes));
+
+    (noteEl('n0')?.querySelector('.note-edit') as HTMLButtonElement).click();
+    const body = document.querySelector('.note-body-input') as HTMLTextAreaElement;
+    body.value = 'x'.repeat(NOTE_VALIDATION.BODY_MAX_LENGTH);
+    body.dispatchEvent(new Event('input'));
+    (document.querySelector('.note-actions button[aria-label="Save note"]') as HTMLButtonElement)
+      .click();
+
+    expect(document.querySelector('.note-edit-error')?.textContent).toMatch(/too large/i);
+    expect(document.querySelector('.note-body-input')).not.toBeNull();
+    expect(state.notes.getAll()[0].body).toHaveLength(9_300);
   });
 
   it('preserves query parameters when syncing the hash', async () => {

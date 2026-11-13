@@ -197,6 +197,26 @@ input[type="search"]::placeholder {
     text-align: center;
 }
 
+.url-warning button {
+    margin-left: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border: 1px solid currentColor;
+    border-radius: 0.25rem;
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.url-warning button:hover {
+    background: rgba(255, 255, 255, 0.15);
+}
+
+.url-warning button:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+}
+
 .undo-toast-dismiss {
     display: inline-flex;
     align-items: center;

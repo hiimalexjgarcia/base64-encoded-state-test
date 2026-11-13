@@ -323,6 +323,21 @@ describe('appState', () => {
       expect(state.notes).toEqual([]);
       consoleSpy.mockRestore();
     });
+
+    it('should refuse a board too large for a shareable link', () => {
+      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const notes = Array.from({ length: 8 }, (_, index) => ({
+        id: `note-${index}`,
+        title: 'T',
+        body: 'x'.repeat(10_000),
+      }));
+
+      appState.notes.setAll(notes);
+
+      expect(appState.notes.getAll()).toEqual([]);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
+    });
   });
 
   describe('state revision', () => {
