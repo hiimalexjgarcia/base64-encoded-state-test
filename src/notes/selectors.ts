@@ -34,20 +34,21 @@ export const sortPinnedFirst = (notes: Note[]): Note[] =>
 export const filterByCompletion = (notes: Note[], showCompleted = false): Note[] =>
   showCompleted ? notes : notes.filter((n) => !n.completed);
 
-/**
- * Fuzzy-searches notes by title and body; returns all notes for a
- * blank query.
- */
-export const searchNotes = (notes: Note[], query: string): Note[] => {
-  const trimmed = query.trim();
+const createSearchIndex = (notes: Note[]): Fuse<Note> =>
+  new Fuse(notes, { keys: ['title', 'body'] });
 
+/** Fuzzy-matches notes by title and body, returning all notes for a blank query. */
+const matchNotes = (
+  notes: Note[],
+  query: string,
+  index: Fuse<Note> | null = null,
+): Note[] => {
+  const trimmed = query.trim();
   if (!trimmed) {
     return notes;
   }
 
-  return new Fuse(notes, { keys: ['title', 'body'] })
-    .search(trimmed)
-    .map((result) => result.item);
+  return (index ?? createSearchIndex(notes)).search(trimmed).map((result) => result.item);
 };
 
 /**
@@ -57,7 +58,7 @@ export const searchNotes = (notes: Note[], query: string): Note[] => {
 export const getVisibleNotes = (
   notes: Note[],
   { query = '', showCompleted = false }: VisibleNotesOptions = {},
-): Note[] => sortPinnedFirst(filterByCompletion(searchNotes(notes, query), showCompleted));
+): Note[] => sortPinnedFirst(filterByCompletion(matchNotes(notes, query), showCompleted));
 
 /**
  * Creates a selector that caches the Fuse index across calls with the same
@@ -68,22 +69,13 @@ export const createVisibleNotesSelector = (): VisibleNotesSelector => {
   let cachedFuse: Fuse<Note> | null = null;
 
   return (notes, { query = '', showCompleted = false, revision } = {}) => {
-    const trimmed = query.trim();
-    let matched = notes;
-
-    if (trimmed) {
-      if (revision === undefined) {
-        matched = new Fuse(notes, { keys: ['title', 'body'] })
-          .search(trimmed)
-          .map((result) => result.item);
-      } else {
-        if (!cachedFuse || cachedRevision !== revision) {
-          cachedFuse = new Fuse(notes, { keys: ['title', 'body'] });
-          cachedRevision = revision;
-        }
-        matched = cachedFuse.search(trimmed).map((result) => result.item);
-      }
+    const useCache = revision !== undefined && query.trim() !== '';
+    if (useCache && (!cachedFuse || cachedRevision !== revision)) {
+      cachedFuse = createSearchIndex(notes);
+      cachedRevision = revision;
     }
+
+    const matched = matchNotes(notes, query, useCache ? cachedFuse : null);
 
     return sortPinnedFirst(filterByCompletion(matched, showCompleted));
   };

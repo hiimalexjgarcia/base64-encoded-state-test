@@ -6,12 +6,12 @@ import {
   loadApp,
   makeNote,
   noteEl,
-} from './support/appHarness';
-import { NOTE_VALIDATION } from '../src/notes/model';
-import { decodeStateDetailed } from '../src/persistence/urlCodec';
+} from '../support/appHarness';
+import { NOTE_VALIDATION } from '../../src/notes/model';
+import { decodeState } from '../../src/url/codec';
 
 const decodeTitle = (encoded: string): string | undefined =>
-  decodeStateDetailed(encoded).state.notes[0]?.title;
+  decodeState(encoded).state.notes[0]?.title;
 
 afterEach(cleanupApp);
 

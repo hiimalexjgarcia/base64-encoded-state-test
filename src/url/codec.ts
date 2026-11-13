@@ -2,7 +2,6 @@
  * URL state codec: compact JSON + base64url for URL-safe persistence.
  */
 
-import { nanoid } from 'nanoid';
 import { AppState, Note, NOTE_COLORS, NoteColor, validateNote } from '../notes/model';
 
 interface CompactNote {
@@ -187,7 +186,7 @@ export const encodeState = (state: AppState): string => {
 /**
  * Decodes a URL-safe string and reports why a non-empty link failed.
  */
-export const decodeStateDetailed = (encoded: string): DecodeResult => {
+export const decodeState = (encoded: string): DecodeResult => {
   const empty: AppState = { notes: [] };
   if (!encoded || typeof encoded !== 'string') {
     return { state: empty, error: null };
@@ -226,5 +225,3 @@ export const decodeStateDetailed = (encoded: string): DecodeResult => {
 
   return { state: expandState(compact), error: null };
 };
-
-export const generateId = (): string => nanoid();

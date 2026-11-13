@@ -2,11 +2,7 @@
  * Board renderer: visible-note pipeline, note cards, empty states, and count.
  */
 
-import {
-  Note,
-  cycleColor,
-  validateNote,
-} from '../notes/model';
+import { Note, validateNote } from '../notes/model';
 import { NoteStore } from '../notes/store';
 import { createVisibleNotesSelector } from '../notes/selectors';
 import { findNoteElement, getNotesContainer, getSearchInput, isShowCompletedChecked } from './dom';
@@ -21,6 +17,9 @@ export interface BoardDeps {
   mountDraft: (noteEl: HTMLElement, draft: EditDraft, restoreFocus: boolean) => void;
   onDelete: (note: Note) => void;
   onEdit: (note: Note) => void;
+  onToggleCompleted: (note: Note) => void;
+  onTogglePinned: (note: Note) => void;
+  onCycleColor: (note: Note) => void;
 }
 
 export interface BoardController {
@@ -52,15 +51,9 @@ export const createBoard = (deps: BoardDeps): BoardController => {
   const createNoteElement = (note: Note): HTMLElement => createNoteCard(note, {
     onDelete: () => deps.onDelete(note),
     onEdit: () => deps.onEdit(note),
-    onToggleComplete: () => {
-      store.updateNote({ ...note, completed: !note.completed });
-    },
-    onPin: () => {
-      store.updateNote({ ...note, pinned: !note.pinned });
-    },
-    onCycleColor: () => {
-      store.updateNote({ ...note, color: cycleColor(note.color) });
-    },
+    onToggleComplete: () => deps.onToggleCompleted(note),
+    onPin: () => deps.onTogglePinned(note),
+    onCycleColor: () => deps.onCycleColor(note),
   });
 
   const renderNotes = (notes: Note[], total: number, query: string): void => {

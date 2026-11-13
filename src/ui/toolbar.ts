@@ -3,7 +3,6 @@
  * visibility, and keyboard shortcuts.
  */
 
-import { NoteStore } from '../notes/store';
 import { getSearchInput, getShowCompletedCheckbox } from './dom';
 import type { BoardController } from './board';
 import type { CommitResult } from './inlineEditor';
@@ -11,7 +10,6 @@ import type { CommitResult } from './inlineEditor';
 const SEARCH_DEBOUNCE_MS = 100;
 
 export interface ToolbarDeps {
-  store: NoteStore;
   board: BoardController;
   editor: { commit: () => CommitResult };
   addNote: () => void;
@@ -31,7 +29,7 @@ const isTypingTarget = (target: EventTarget | null): boolean => {
   );
 };
 
-export const setupToolbar = (deps: ToolbarDeps): ToolbarCleanup => {
+export const createToolbar = (deps: ToolbarDeps): ToolbarCleanup => {
   const cleanups: Array<() => void> = [];
   let searchTimer: number | null = null;
   let labelTimer: number | null = null;

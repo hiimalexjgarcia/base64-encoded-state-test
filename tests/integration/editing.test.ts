@@ -8,8 +8,8 @@ import {
   makeNote,
   noteEl,
   typeKey,
-} from './support/appHarness';
-import { NOTE_VALIDATION } from '../src/notes/model';
+} from '../support/appHarness';
+import { NOTE_VALIDATION } from '../../src/notes/model';
 
 afterEach(cleanupApp);
 

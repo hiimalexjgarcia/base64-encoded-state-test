@@ -4,6 +4,29 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [semantic versioning](https://semver.org/).
 
+## [0.2.1] - 2026-11-12
+
+### Changed
+
+- Reorganized modules for clearer responsibilities: `createApp` (composition),
+  `urlSync` (URL lifecycle), `undo` (history), `unsavedDraftGuard`, and
+  `url/codec`. The store no longer owns a singleton or app-layer logging.
+- All note mutations now go through `noteActions`; the board forwards
+  complete/pin/color events instead of writing to the store directly.
+- The undo toast is now a view-only component; restoring removed notes lives
+  in `app/undo.ts`.
+- Moved note creation to `createNote` and renamed `decodeStateDetailed` to
+  `decodeState`.
+- Unit tests stay colocated; integration tests moved to `tests/integration/`
+  and entry/HTML smoke tests to `tests/smoke/`.
+
+### Fixed
+
+- Delete and clear-completed no longer show an undo toast when the mutation
+  fails.
+- Complete, pin, and color changes now report a URL-budget failure instead of
+  failing silently.
+
 ## [0.2.0] - 2026-11-12
 
 ### Changed

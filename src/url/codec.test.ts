@@ -1,11 +1,10 @@
 import {
   encodeState,
-  decodeStateDetailed,
-  generateId,
+  decodeState,
   isStateWithinBudget,
   MAX_ENCODED_LENGTH,
   MAX_STATE_BYTES,
-} from './urlCodec';
+} from './codec';
 import { AppState, Note, NOTE_VALIDATION } from '../notes/model';
 
 const makeNote = (overrides: Partial<Note> = {}): Note => ({
@@ -18,7 +17,7 @@ const makeNote = (overrides: Partial<Note> = {}): Note => ({
 const toBase64Url = (json: string): string =>
   btoa(json).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-const decode = (encoded: string): AppState => decodeStateDetailed(encoded).state;
+const decode = (encoded: string): AppState => decodeState(encoded).state;
 
 describe('urlCodec', () => {
   describe('encodeState', () => {
@@ -89,11 +88,11 @@ describe('urlCodec', () => {
     });
 
     it('reports why a non-empty link failed', () => {
-      expect(decodeStateDetailed('invalid-base64!!')).toEqual({
+      expect(decodeState('invalid-base64!!')).toEqual({
         state: { notes: [] },
         error: 'invalid-encoding',
       });
-      expect(decodeStateDetailed('')).toEqual({
+      expect(decodeState('')).toEqual({
         state: { notes: [] },
         error: null,
       });
@@ -138,30 +137,30 @@ describe('urlCodec', () => {
     });
   });
 
-  describe('decodeStateDetailed', () => {
+  describe('decodeState', () => {
     it('reports an oversized link', () => {
-      expect(decodeStateDetailed('a'.repeat(MAX_ENCODED_LENGTH + 1))).toEqual({
+      expect(decodeState('a'.repeat(MAX_ENCODED_LENGTH + 1))).toEqual({
         state: { notes: [] },
         error: 'too-long',
       });
     });
 
     it('reports malformed JSON', () => {
-      expect(decodeStateDetailed(toBase64Url('{"v":1,"n":['))).toEqual({
+      expect(decodeState(toBase64Url('{"v":1,"n":['))).toEqual({
         state: { notes: [] },
         error: 'invalid-json',
       });
     });
 
     it('reports an invalid payload shape', () => {
-      expect(decodeStateDetailed(toBase64Url('{"v":1}'))).toEqual({
+      expect(decodeState(toBase64Url('{"v":1}'))).toEqual({
         state: { notes: [] },
         error: 'invalid-shape',
       });
     });
 
     it('reports an unsupported schema version', () => {
-      expect(decodeStateDetailed(toBase64Url('{"v":2,"n":[]}'))).toEqual({
+      expect(decodeState(toBase64Url('{"v":2,"n":[]}'))).toEqual({
         state: { notes: [] },
         error: 'unsupported-version',
       });
@@ -170,7 +169,7 @@ describe('urlCodec', () => {
     it('returns the decoded state without an error on success', () => {
       const state = { notes: [makeNote()] };
 
-      expect(decodeStateDetailed(encodeState(state))).toEqual({ state, error: null });
+      expect(decodeState(encodeState(state))).toEqual({ state, error: null });
     });
   });
 
@@ -246,7 +245,7 @@ describe('urlCodec', () => {
     it('rejects a link without a schema version', () => {
       const encoded = toBase64Url(JSON.stringify({ n: [{ i: 'old-1', t: 'Old' }] }));
 
-      expect(decodeStateDetailed(encoded)).toEqual({
+      expect(decodeState(encoded)).toEqual({
         state: { notes: [] },
         error: 'unsupported-version',
       });
@@ -256,18 +255,10 @@ describe('urlCodec', () => {
       const encoded = encodeState({ notes: [makeNote()] });
       const padded = encoded + '='.repeat((4 - encoded.length % 4) % 4);
 
-      expect(decodeStateDetailed(padded)).toEqual({
+      expect(decodeState(padded)).toEqual({
         state: { notes: [] },
         error: 'invalid-encoding',
       });
-    });
-  });
-
-  describe('generateId', () => {
-    it('produces unique ids', () => {
-      const ids = new Set(Array.from({ length: 50 }, () => generateId()));
-
-      expect(ids.size).toBe(50);
     });
   });
 });

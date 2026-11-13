@@ -1,5 +1,5 @@
 import { jest } from '@jest/globals';
-import { createNoteCard, NoteActions } from './noteCard';
+import { createNoteCard, NoteCardActions } from './noteCard';
 import { Note } from '../notes/model';
 
 describe('createNoteCard', () => {
@@ -9,7 +9,7 @@ describe('createNoteCard', () => {
     body: 'World',
   };
 
-  const createActions = (overrides: Partial<NoteActions> = {}): NoteActions => ({
+  const createActions = (overrides: Partial<NoteCardActions> = {}): NoteCardActions => ({
     onDelete: jest.fn(),
     ...overrides,
   });

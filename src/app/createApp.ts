@@ -1,28 +1,28 @@
 /**
- * Composition root: wires the store, board, editor, toolbar, URL session,
- * undo toast, and unload guard. Returns a controller so tests (and future
- * hot-reload code) can tear the app down cleanly.
+ * Composition root: wires the store, board, editor, toolbar, URL sync, undo,
+ * and draft guard. Returns an app handle so tests and hot reload can tear it
+ * down cleanly.
  */
 
-import noteStore, { NoteStore } from '../notes/store';
-import { createNoteActions } from './noteActions';
-import { createUrlSession, buildCanonicalUrl } from './urlSession';
-import { setupUnloadGuard } from './unloadGuard';
+import { NoteStore } from '../notes/store';
 import { createBoard, BoardController } from '../ui/board';
 import { clearSearchInput } from '../ui/dom';
 import { createInlineEditor } from '../ui/inlineEditor';
-import { setupToolbar } from '../ui/toolbar';
-import { createUndoToast } from '../ui/undoToast';
+import { createToolbar } from '../ui/toolbar';
 import { createWarnings } from '../ui/warnings';
+import { createNoteActions } from './noteActions';
+import { createUndo } from './undo';
+import { createUnsavedDraftGuard } from './unsavedDraftGuard';
+import { buildCanonicalUrl, createUrlSync } from './urlSync';
 
-export interface AppController {
+export interface App {
   store: NoteStore;
   destroy: () => void;
 }
 
-export const bootstrap = (store: NoteStore = noteStore): AppController => {
+export const createApp = (store: NoteStore): App => {
   const warnings = createWarnings();
-  const undo = createUndoToast(store);
+  const undo = createUndo(store);
 
   // The board and editor refer to each other: the board re-mounts the active
   // draft after rendering, and the editor asks the board to re-render after a
@@ -49,10 +49,13 @@ export const bootstrap = (store: NoteStore = noteStore): AppController => {
     mountDraft: editor.mount,
     onDelete: noteActions.deleteNote,
     onEdit: editor.start,
+    onToggleCompleted: noteActions.toggleCompleted,
+    onTogglePinned: noteActions.togglePinned,
+    onCycleColor: noteActions.cycleNoteColor,
   });
   boardHolder.current = board;
 
-  const urlSession = createUrlSession({
+  const urlSync = createUrlSync({
     store,
     warnings,
     render: () => board.render(),
@@ -62,19 +65,18 @@ export const bootstrap = (store: NoteStore = noteStore): AppController => {
     },
   });
 
-  const unsubscribe = store.subscribe(urlSession.onStateChanged);
-  const cleanupToolbar = setupToolbar({
-    store,
+  const unsubscribe = store.subscribe(urlSync.onStateChanged);
+  const cleanupToolbar = createToolbar({
     board,
     editor,
     addNote: noteActions.addNote,
     clearCompleted: noteActions.clearCompleted,
     buildShareUrl: () => buildCanonicalUrl(store.getEncoded()),
   });
-  const unloadGuard = setupUnloadGuard(editor.hasUnsavedDraft);
+  const draftGuard = createUnsavedDraftGuard(editor.hasUnsavedDraft);
 
-  window.addEventListener('hashchange', urlSession.handleHashChange, false);
-  urlSession.initialize();
+  window.addEventListener('hashchange', urlSync.handleHashChange, false);
+  urlSync.initialize();
   board.render();
 
   return {
@@ -82,11 +84,11 @@ export const bootstrap = (store: NoteStore = noteStore): AppController => {
     destroy: (): void => {
       unsubscribe();
       cleanupToolbar();
-      unloadGuard.destroy();
+      draftGuard.destroy();
       undo.destroy();
       editor.end();
       warnings.destroy();
-      window.removeEventListener('hashchange', urlSession.handleHashChange, false);
+      window.removeEventListener('hashchange', urlSync.handleHashChange, false);
     },
   };
 };

@@ -7,12 +7,12 @@ import {
   makeNote,
   noteEl,
   typeKey,
-} from './support/appHarness';
-import { MAX_ENCODED_LENGTH } from '../src/persistence/urlCodec';
+} from '../support/appHarness';
+import { MAX_ENCODED_LENGTH } from '../../src/url/codec';
 
 afterEach(cleanupApp);
 
-describe('app bootstrap', () => {
+describe('app startup', () => {
   it('renders notes decoded from the URL hash and shows the count', () => {
     loadApp(hashFor([
       makeNote({ id: 'a', title: 'Groceries', body: 'Milk' }),

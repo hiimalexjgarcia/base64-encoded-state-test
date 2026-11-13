@@ -7,7 +7,7 @@ import {
   makeNote,
   noteEl,
   typeKey,
-} from './support/appHarness';
+} from '../support/appHarness';
 
 afterEach(cleanupApp);
 

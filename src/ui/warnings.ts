@@ -3,7 +3,7 @@
  * rejections, and unreadable incoming links.
  */
 
-import { DecodeFailureReason } from '../persistence/urlCodec';
+import { DecodeFailureReason } from '../url/codec';
 
 const URL_WARNING_ID = 'urlWarning';
 const DECODE_WARNING_ID = 'decodeWarning';

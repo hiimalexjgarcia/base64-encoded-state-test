@@ -1,27 +1,23 @@
 /**
- * Undo toast for deletions and clear-completed. The countdown pauses while
- * the toast is hovered or focused so keyboard and screen-reader users have
- * time to act.
+ * Undo toast view. Owns the DOM and countdown only; restoring removed notes
+ * is the caller's responsibility. The countdown pauses while the toast is
+ * hovered or focused so keyboard and screen-reader users have time to act.
  */
-
-import { Note } from '../notes/model';
-import { NoteStore } from '../notes/store';
 
 const UNDO_TOAST_MS = 6000;
 
-interface UndoEntry {
-  removed: Array<{ note: Note; index: number }>;
+export interface UndoToastOptions {
+  onUndo: () => void;
+  onDismiss?: () => void;
 }
 
-export interface UndoToastController {
-  capture: (notes: Note[]) => void;
+export interface UndoToast {
   show: (message: string) => void;
   hide: () => void;
   destroy: () => void;
 }
 
-export const createUndoToast = (store: NoteStore): UndoToastController => {
-  let undoEntry: UndoEntry | null = null;
+export const createUndoToast = ({ onUndo, onDismiss }: UndoToastOptions): UndoToast => {
   let timer: number | null = null;
   let deadline = 0;
   let remaining = UNDO_TOAST_MS;
@@ -104,35 +100,10 @@ export const createUndoToast = (store: NoteStore): UndoToastController => {
     hovered = false;
     focused = false;
     remaining = UNDO_TOAST_MS;
-    // Once the toast is gone there is no control left to invoke the undo.
-    undoEntry = null;
-  };
-
-  const undoRemoval = (): void => {
-    if (!undoEntry) {
-      return;
-    }
-
-    const current = store.getNotes();
-    const ordered = [...undoEntry.removed].sort((a, b) => a.index - b.index);
-    for (const { note, index } of ordered) {
-      current.splice(Math.min(index, current.length), 0, note);
-    }
-    undoEntry = null;
-    hide();
-    store.setNotes(current);
+    onDismiss?.();
   };
 
   return {
-    capture: (notes: Note[]): void => {
-      const all = store.getNotes();
-      undoEntry = {
-        removed: notes
-          .map((note) => ({ note, index: all.findIndex((item) => item.id === note.id) }))
-          .filter((entry) => entry.index >= 0),
-      };
-    },
-
     show: (message: string): void => {
       const toast = getToast();
       toast.innerHTML = '';
@@ -151,7 +122,10 @@ export const createUndoToast = (store: NoteStore): UndoToastController => {
       undoBtn.type = 'button';
       undoBtn.className = 'btn btn-primary';
       undoBtn.textContent = 'Undo';
-      undoBtn.addEventListener('click', undoRemoval);
+      undoBtn.addEventListener('click', () => {
+        onUndo();
+        hide();
+      });
 
       const dismissBtn = document.createElement('button');
       dismissBtn.type = 'button';
@@ -179,7 +153,7 @@ export const createUndoToast = (store: NoteStore): UndoToastController => {
     destroy: (): void => {
       clearTimer();
       document.getElementById('undoToast')?.remove();
-      undoEntry = null;
+      onDismiss?.();
     },
   };
 };

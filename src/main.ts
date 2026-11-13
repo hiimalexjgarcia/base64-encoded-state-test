@@ -1,15 +1,16 @@
 /**
- * Application entry point. The composition root lives in ./app/bootstrap so
+ * Application entry point. The composition root lives in ./app/createApp so
  * this file only deals with startup timing and the CSS import.
  */
 
-import { AppController, bootstrap } from './app/bootstrap';
+import { App, createApp } from './app/createApp';
+import { createNoteStore } from './notes/store';
 import './styles/app.css';
 
-let app: AppController | null = null;
+let app: App | null = null;
 
 const start = (): void => {
-  app = bootstrap();
+  app = createApp(createNoteStore());
 };
 
 if (document.readyState === 'loading') {

@@ -6,15 +6,15 @@
 
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { AppController, bootstrap } from '../../src/app/bootstrap';
+import { App, createApp } from '../../src/app/createApp';
 import { Note } from '../../src/notes/model';
 import { createNoteStore, NoteStore } from '../../src/notes/store';
-import { encodeState } from '../../src/persistence/urlCodec';
+import { encodeState } from '../../src/url/codec';
 
 const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
 
 export interface AppHarness {
-  app: AppController;
+  app: App;
   store: NoteStore;
   destroy: () => void;
 }
@@ -27,7 +27,7 @@ export const renderPage = (): void => {
   document.body.innerHTML = doc.body.innerHTML;
 };
 
-const setReadyState = (state: DocumentReadyState): void => {
+export const setReadyState = (state: DocumentReadyState): void => {
   Object.defineProperty(document, 'readyState', {
     value: state,
     configurable: true,
@@ -42,7 +42,7 @@ export const loadApp = (encoded = ''): AppHarness => {
   window.history.replaceState(null, '', `/#/${encoded}`);
 
   const store = createNoteStore();
-  const app = bootstrap(store);
+  const app = createApp(store);
   current = {
     app,
     store,

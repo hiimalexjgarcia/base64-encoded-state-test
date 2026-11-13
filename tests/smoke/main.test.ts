@@ -5,22 +5,7 @@
  */
 
 import { jest } from '@jest/globals';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
-const indexHtml = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
-
-const renderPage = (): void => {
-  const doc = new DOMParser().parseFromString(indexHtml, 'text/html');
-  document.body.innerHTML = doc.body.innerHTML;
-};
-
-const setReadyState = (state: DocumentReadyState): void => {
-  Object.defineProperty(document, 'readyState', {
-    value: state,
-    configurable: true,
-  });
-};
+import { renderPage, setReadyState } from '../support/appHarness';
 
 describe('main entry', () => {
   beforeEach(() => {
@@ -31,12 +16,12 @@ describe('main entry', () => {
   });
 
   afterEach(async () => {
-    const { stop } = await import('../src/main');
+    const { stop } = await import('../../src/main');
     stop();
   });
 
   it('boots immediately when the document is already complete', async () => {
-    await import('../src/main');
+    await import('../../src/main');
 
     expect(document.querySelector('.notes-empty')?.textContent).toContain('No notes yet');
 
@@ -47,7 +32,7 @@ describe('main entry', () => {
 
   it('waits for DOMContentLoaded when the document is still loading', async () => {
     setReadyState('loading');
-    await import('../src/main');
+    await import('../../src/main');
 
     expect(document.querySelector('#notes .note')).toBeNull();
     expect(document.querySelector('.notes-empty')).toBeNull();
@@ -58,8 +43,8 @@ describe('main entry', () => {
   });
 
   it('stop() removes the toolbar listeners', async () => {
-    await import('../src/main');
-    const { stop } = await import('../src/main');
+    await import('../../src/main');
+    const { stop } = await import('../../src/main');
 
     stop();
     (document.getElementById('addNoteBtn') as HTMLButtonElement).click();

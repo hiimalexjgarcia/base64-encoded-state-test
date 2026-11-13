@@ -4,7 +4,7 @@
 
 import { Note, NoteColor } from '../notes/model';
 
-export interface NoteActions {
+export interface NoteCardActions {
   onDelete: () => void;
   onEdit?: () => void;
   onToggleComplete?: () => void;
@@ -52,7 +52,7 @@ const createDeleteButton = (onClick: () => void): HTMLButtonElement => {
 
 const colorClass = (color?: NoteColor): string => color ? ` note-color-${color}` : '';
 
-export const createNoteCard = (note: Note, actionsConfig: NoteActions): HTMLElement => {
+export const createNoteCard = (note: Note, actionsConfig: NoteCardActions): HTMLElement => {
   const { onDelete, onEdit, onToggleComplete, onPin, onCycleColor } = actionsConfig;
 
   const el = document.createElement('div');

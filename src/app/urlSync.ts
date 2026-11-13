@@ -1,10 +1,10 @@
 /**
- * URL session: reads the hash, loads shared state, syncs canonical URLs, and
+ * URL sync: reads the hash, loads shared state, writes canonical URLs, and
  * owns the invalid-link recovery flow.
  */
 
 import { NoteStore } from '../notes/store';
-import { DecodeFailureReason } from '../persistence/urlCodec';
+import { DecodeFailureReason } from '../url/codec';
 import { URL_LENGTH_WARN_THRESHOLD, WarningsController } from '../ui/warnings';
 
 /**
@@ -31,7 +31,7 @@ export const readHash = (): string => {
   return hash.startsWith('#/') ? hash.slice(2) : '';
 };
 
-export interface UrlSessionDeps {
+export interface UrlSyncDeps {
   store: NoteStore;
   warnings: WarningsController;
   render: () => void;
@@ -39,15 +39,13 @@ export interface UrlSessionDeps {
   beforeBoardReplacement: () => void;
 }
 
-export interface UrlSessionController {
+export interface UrlSyncController {
   initialize: () => void;
   onStateChanged: () => void;
   handleHashChange: () => void;
-  startEmptyBoard: () => void;
-  clearDecodeWarning: () => void;
 }
 
-export const createUrlSession = (deps: UrlSessionDeps): UrlSessionController => {
+export const createUrlSync = (deps: UrlSyncDeps): UrlSyncController => {
   const { store, warnings } = deps;
   // True while an invalid incoming link is being replaced with an empty board.
   // The state must reset without rewriting the address bar, so the user's
@@ -163,13 +161,6 @@ export const createUrlSession = (deps: UrlSessionDeps): UrlSessionController => 
         warnings.clearDecodeWarning();
         store.loadEncoded('');
       }
-    },
-
-    startEmptyBoard,
-
-    clearDecodeWarning: (): void => {
-      decodeFailure = null;
-      warnings.clearDecodeWarning();
     },
   };
 };

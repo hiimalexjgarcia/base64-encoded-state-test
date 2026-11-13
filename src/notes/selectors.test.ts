@@ -2,7 +2,6 @@ import {
   createVisibleNotesSelector,
   filterByCompletion,
   getVisibleNotes,
-  searchNotes,
   sortPinnedFirst,
 } from './selectors';
 import { Note } from './model';
@@ -73,15 +72,18 @@ describe('note selectors', () => {
     });
   });
 
-  describe('searchNotes', () => {
+  describe('search', () => {
+    const search = (notes: Note[], query: string): Note[] =>
+      getVisibleNotes(notes, { query });
+
     it('returns all notes for a blank query', () => {
       const notes = [
         makeNote({ id: '1' }),
         makeNote({ id: '2' }),
       ];
 
-      expect(searchNotes(notes, '')).toEqual(notes);
-      expect(searchNotes(notes, '   ')).toEqual(notes);
+      expect(search(notes, '')).toEqual(notes);
+      expect(search(notes, '   ')).toEqual(notes);
     });
 
     it('matches by title', () => {
@@ -90,7 +92,7 @@ describe('note selectors', () => {
         makeNote({ id: '2', title: 'Goodbye' }),
       ];
 
-      expect(searchNotes(notes, 'Hello').map((n) => n.id)).toEqual(['1']);
+      expect(search(notes, 'Hello').map((n) => n.id)).toEqual(['1']);
     });
 
     it('matches by body', () => {
@@ -99,13 +101,13 @@ describe('note selectors', () => {
         makeNote({ id: '2', body: 'nothing here' }),
       ];
 
-      expect(searchNotes(notes, 'needle').map((n) => n.id)).toEqual(['1']);
+      expect(search(notes, 'needle').map((n) => n.id)).toEqual(['1']);
     });
 
     it('returns empty for a non-matching query', () => {
       const notes = [makeNote({ title: 'Alpha' })];
 
-      expect(searchNotes(notes, 'zzzznonexistent')).toEqual([]);
+      expect(search(notes, 'zzzznonexistent')).toEqual([]);
     });
 
     it('treats Fuse extended-search operators as literal text', () => {
@@ -116,7 +118,7 @@ describe('note selectors', () => {
 
       // With useExtendedSearch, "!Alpha" means "not Alpha" and would return
       // Beta. The plain search ignores the punctuation and matches Alpha.
-      expect(searchNotes(notes, '!Alpha').map((n) => n.id)).toEqual(['1']);
+      expect(search(notes, '!Alpha').map((n) => n.id)).toEqual(['1']);
     });
   });
 

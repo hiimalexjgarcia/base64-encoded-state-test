@@ -2,10 +2,10 @@
 
 ```mermaid
 graph TD
-    A[Page loads] --> B[main.ts → bootstrap]
-    B --> C[urlSession reads the hash]
+    A[Page loads] --> B[main.ts → createApp]
+    B --> C[urlSync reads the hash]
     C -->|empty| D[Render empty board]
-    C -->|present| E[urlCodec decodes, validates, and checks budget]
+    C -->|present| E[URL codec decodes, validates, and checks budget]
 
     E -->|error| F[Keep original hash; show reason + Start empty]
     F --> D
@@ -13,7 +13,7 @@ graph TD
 
     G --> H[Store publishes to subscribers]
     H --> I[board renders visible notes]
-    H --> J[urlSession syncs the canonical URL]
+    H --> J[urlSync syncs the canonical URL]
     J --> K{URL too long or replaceState failed?}
     K -->|yes| L[Show URL warning]
     K -->|no| M[Clear warning]
@@ -39,15 +39,16 @@ graph TD
 
 | Area | Responsibility |
 | --- | --- |
-| `src/main.ts` | Entry point: imports CSS, starts `bootstrap()`, exports `stop()`. |
-| `src/app/bootstrap.ts` | Composition root; returns an `AppController` with `destroy()`. |
-| `src/app/urlSession.ts` | Hash loading, canonical URL, URL sync, and decode recovery. |
-| `src/app/noteActions.ts`, `unloadGuard.ts`, `errors.ts` | Add/delete/clear actions, dirty-draft guard, error reporting. |
-| `src/notes/model.ts` | Note type, validation, colors, and id/color helpers. |
+| `src/main.ts` | Entry point: imports CSS, creates the store, starts `createApp()`, exports `stop()`. |
+| `src/app/createApp.ts` | Composition root; returns an `App` with `destroy()`. |
+| `src/app/urlSync.ts` | Hash loading, canonical URL, URL sync, and decode recovery. |
+| `src/app/noteActions.ts`, `undo.ts`, `unsavedDraftGuard.ts` | Note commands, undo history, and the dirty-draft guard. |
+| `src/notes/model.ts` | Note type, validation, colors, and validation limits. |
+| `src/notes/createNote.ts` | New-note factory with a generated id and random color. |
 | `src/notes/store.ts` | Immutable state, mutations, budget checks, revision, subscriptions. |
 | `src/notes/selectors.ts` | Search, completion filter, pin sort, and revision-cached selector. |
-| `src/persistence/urlCodec.ts` | Compact schema, base64url encode/decode, budgets, `generateId`. |
-| `src/ui/*` | Factories for the board, inline editor, toolbar, note card, warnings, and undo toast. |
+| `src/url/codec.ts` | Compact schema, base64url encode/decode, and budgets. |
+| `src/ui/*` | Factories for the board, inline editor, toolbar, note card, warnings, and undo toast view. |
 
 ## Behavior Notes
 
@@ -55,4 +56,4 @@ graph TD
 - **Budgets**: the payload is capped at 75,000 UTF-8 bytes, which guarantees a link at or below the 100,000-character decode limit. Rejected mutations leave the board unchanged and report `invalid` or `budget`.
 - **Editing**: state-change renders re-mount the active `EditDraft`; actions outside the editor commit the draft first. An invalid or over-budget draft cancels the action and keeps the editor open.
 - **Ordering**: pinned notes sort first, with relative order preserved; completed notes are hidden unless "Show completed" is enabled.
-- **Tests**: unit tests are colocated in `src/`; whole-app tests live in `tests/` and share `tests/support/appHarness.ts`, which boots against the real `index.html` body.
+- **Tests**: unit tests are colocated in `src/`; app and flow tests live in `tests/integration/`, entry-point and HTML smoke tests in `tests/smoke/`, and both share `tests/support/appHarness.ts`, which boots against the real `index.html` body.

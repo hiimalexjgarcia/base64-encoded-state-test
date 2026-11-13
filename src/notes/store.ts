@@ -6,7 +6,6 @@
  * instead of silently dropping the change.
  */
 
-import { handleError } from '../app/errors';
 import {
   AppState,
   EncodedState,
@@ -16,10 +15,16 @@ import {
 } from './model';
 import {
   DecodeFailureReason,
-  decodeStateDetailed,
+  decodeState,
   encodeState,
   isStateWithinBudget,
-} from '../persistence/urlCodec';
+} from '../url/codec';
+
+/** Logs an unexpected store failure for debugging. */
+const logError = (error: unknown, method: string): void => {
+  // eslint-disable-next-line no-console
+  console.error(`[store.${method}]`, error);
+};
 
 export type MutationFailureReason = 'invalid' | 'budget';
 
@@ -51,22 +56,12 @@ const normalizeState = (state: AppState): AppState => ({
   notes: Array.isArray(state.notes) ? state.notes : [],
 });
 
-const clone = <T>(value: T): T => {
-  if (value === null || value === undefined) {
-    return value;
-  }
-  try {
-    return typeof structuredClone === 'function'
-      ? structuredClone(value)
-      : JSON.parse(JSON.stringify(value));
-  } catch {
-    return value;
-  }
-};
+const clone = <T>(value: T): T => structuredClone(value);
 
 /**
- * Creates an isolated note store. The app uses one singleton, while tests can
- * create fresh instances without resetting the module registry.
+ * Creates an isolated note store. The app creates one instance at startup,
+ * while tests can create fresh instances without resetting the module
+ * registry.
  */
 export const createNoteStore = (): NoteStore => {
   let state: AppState = { notes: [] };
@@ -90,10 +85,7 @@ export const createNoteStore = (): NoteStore => {
       if (!isStateWithinBudget(next)) {
         // The URL is the only persistence layer, so a board that cannot be
         // encoded within the decoder's limit must never become app state.
-        handleError(new Error('State is too large for a shareable URL'), {
-          module: 'store',
-          method: 'commit',
-        });
+        logError(new Error('State is too large for a shareable URL'), 'commit');
 
         return { ok: false, reason: 'budget' };
       }
@@ -104,20 +96,14 @@ export const createNoteStore = (): NoteStore => {
 
       return { ok: true };
     } catch (error) {
-      handleError(error, {
-        module: 'store',
-        method: 'commit',
-      });
+      logError(error, 'commit');
 
       return { ok: false, reason: 'invalid' };
     }
   };
 
   const invalid = (method: string, message: string): MutationResult => {
-    handleError(new Error(message), {
-      module: 'store',
-      method,
-    });
+    logError(new Error(message), method);
 
     return { ok: false, reason: 'invalid' };
   };
@@ -133,10 +119,7 @@ export const createNoteStore = (): NoteStore => {
       try {
         return encodeState(state);
       } catch (error) {
-        handleError(error, {
-          module: 'store',
-          method: 'getEncoded',
-        });
+        logError(error, 'getEncoded');
 
         return '';
       }
@@ -148,17 +131,15 @@ export const createNoteStore = (): NoteStore => {
      * the original link and explain what happened.
      */
     loadEncoded: (encoded: EncodedState): LoadResult => {
-      const result = decodeStateDetailed(encoded);
+      const result = decodeState(encoded);
       if (result.error) {
         return result;
       }
 
       const committed = commit(() => result.state);
       if (!committed.ok) {
-        return {
-          state: { notes: [] },
-          error: result.error ?? 'too-long',
-        };
+        // The only commit failure after a successful decode is the URL budget.
+        return { state: { notes: [] }, error: 'too-long' };
       }
 
       return result;
@@ -224,8 +205,3 @@ export const createNoteStore = (): NoteStore => {
     })),
   };
 };
-
-/** Singleton store used by the running application. */
-const noteStore = createNoteStore();
-
-export default noteStore;

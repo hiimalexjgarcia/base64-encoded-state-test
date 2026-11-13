@@ -1,6 +1,6 @@
 /**
  * Unsaved-draft guard for reload and tab close. A single window-level
- * listener consults the latest bootstrapped app, so hot reloads and repeated
+ * listener consults the latest app instance, so hot reloads and repeated
  * test bootstraps cannot stack stale guards.
  */
 
@@ -10,11 +10,13 @@ interface DraftGuardWindow extends Window {
   stickyNotesDraftGuardHandler?: (event: BeforeUnloadEvent) => void;
 }
 
-export interface UnloadGuardController {
+export interface UnsavedDraftGuard {
   destroy: () => void;
 }
 
-export const setupUnloadGuard = (hasUnsavedDraft: () => boolean): UnloadGuardController => {
+export const createUnsavedDraftGuard = (
+  hasUnsavedDraft: () => boolean,
+): UnsavedDraftGuard => {
   const guardWindow = window as DraftGuardWindow;
   guardWindow.stickyNotesHasUnsavedDraft = hasUnsavedDraft;
 

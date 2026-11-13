@@ -1,6 +1,6 @@
 {
   "name": "sticky-notes-corkboard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A vanilla TypeScript sticky-notes corkboard that stores all state in the URL hash.",
   "private": true,
   "scripts": {
@@ -8,8 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"vite.config.ts\" \"*.js\"",
-    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"vite.config.ts\" \"*.js\" --fix",
+    "lint": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"vite.config.ts\" \"*.{js,mjs}\"",
+    "lint:fix": "eslint \"src/**/*.ts\" \"tests/**/*.ts\" \"vite.config.ts\" \"*.{js,mjs}\" --fix",
     "test:watch": "npm test -- --watch",
     "test:coverage": "npm test -- --coverage"
   },
